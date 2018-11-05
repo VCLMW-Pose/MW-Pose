@@ -4,11 +4,13 @@
 
     Author           : Shaoshu Yang
     Email            : shaoshuyangseu@gmail.com
-    Last edit date   : Sat Nov 3 24:00 2018
+    Last edit date   : Sat Nov 4 24:00 2018
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
 '''
+
+__all__ = ['DRAGAN']
 
 import os
 import torch
@@ -16,7 +18,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from torch.autograd import grad
-from src.utils import initialize, printer
+from src.utils import *
 
 class generator(nn.Module):
     def __init__(self, dim_in, dim_out, img_size):
@@ -46,7 +48,7 @@ class generator(nn.Module):
             nn.ConvTranspose2d(64, self.dim_out, 4, 2, 1),
             nn.Tanh()
         )
-        initialize.initialize_weight(self)
+        initialize_weight(self)
 
     def forward(self, x):
         '''
@@ -81,12 +83,12 @@ class discriminator(nn.Module):
         )
         self.fc = nn.Sequential(
             nn.Linear(128*(self.img_size//4)*(self.img_size//4), 1024),
-            nn.BatchNorm2d(1024),
+            nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2),
             nn.Linear(1024, self.dim_out),
             nn.Sigmoid()
         )
-        initialize.initialize_weight(self)
+        initialize_weight(self)
 
     def forward(self, x):
         x = self.conv(x)
@@ -95,12 +97,11 @@ class discriminator(nn.Module):
 
         return x
 
-class DRAGAN(nn.Module):
-    def __init__(self, save_dir, result_dir, model_name, gpu_mode, img_size, z_dim, x_dim, lrG, lrD, beta1, beta2):
+class DRAGAN():
+    def __init__(self, save_dir, model_name, img_size, z_dim, x_dim):
         '''
         Args:
              save_dir       : (string) directory to save weights
-             result_dir     : (string)
              gpu_mode       : (boolean)
              img_size       : (int)
              z_dim          : (int)
@@ -111,22 +112,15 @@ class DRAGAN(nn.Module):
              beta2          : (float)
         '''
         self.save_dir = save_dir
-        self.result_dir = result_dir
         self.model_name = model_name
         self.img_size = img_size
 
         self.G = generator(dim_in=z_dim, dim_out=x_dim, img_size=self.img_size)
         self.D = discriminator(dim_in=x_dim, dim_out=1, img_size=self.img_size)
-        self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
-        self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
-
-        if gpu_mode:
-            self.G.cuda()
-            self.D.cuda()
 
         print("---------------Network Architecture---------------")
-        printer.print_network(self.G)
-        printer.print_network(self.D)
+        print_network(self.G)
+        print_network(self.D)
         print("--------------------------------------------------")
 
     def forward(self, z):
@@ -151,7 +145,7 @@ class DRAGAN(nn.Module):
                 layer.bias.data.cpu().numpy().tofile(fp)
                 layer.weight.data.cpu().numpy().tofile(fp)
 
-            elif isinstance(layer, nn.BatchNorm2d):
+            elif isinstance(layer, nn.BatchNorm2d) or isinstance(layer, nn.BatchNorm1d):
                 layer.bias.data.cpu().numpy().tofile(fp)
                 layer.weight.data.cpu().numpy().tofile(fp)
                 layer.running_mean.data.cpu().numpy().tofile(fp)
@@ -168,7 +162,7 @@ class DRAGAN(nn.Module):
                 layer.bias.data.cpu().numpy().tofile(fp)
                 layer.weight.data.cpu().numpy().tofile(fp)
 
-            elif isinstance(layer, nn.BatchNorm2d):
+            elif isinstance(layer, nn.BatchNorm2d) or isinstance(layer, nn.BatchNorm1d):
                 layer.bias.data.cpu().numpy().tofile(fp)
                 layer.weight.data.cpu().numpy().tofile(fp)
                 layer.running_mean.data.cpu().numpy().tofile(fp)
@@ -176,8 +170,89 @@ class DRAGAN(nn.Module):
 
         fp.close()
 
-    #def load(self):
+    def load(self):
+        # Load weights for both generator and discriminator
+        self.loadG()
+        self.loadD()
 
+    def loadG(self):
+        '''
+             Load weights for generator
+        '''
+        with open(os.path.join(self.save_dir + self.model_name + '_G'), 'rb') as file:
+            fp = file
+        weights = np.fromfile(fp, dtype=np.float32)
+        ptr = 0
 
+        for layer in self.G.modules():
+            # Load weights for deconvolutional, linear and batch normalization layers
+            if isinstance(layer, nn.ConvTranspose2d) or isinstance(layer, nn.Linear):
+                num_B = layer.bias.numel()
+                bias = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.bias)
+                layer.bias.data.copy_(bias)
+                ptr += num_B
 
+                num_W = layer.weight.numel()
+                weight = torch.from_numpy(weights[ptr:ptr + num_W]).view_as(layer.weight)
+                layer.weight.data.copy_(weight)
+                ptr += num_W
 
+            elif isinstance(layer, nn.BatchNorm2d) or isinstance(layer, nn.BatchNorm1d):
+                num_B = layer.bias.numel()
+                bias = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.bias)
+                layer.bias.data.copy_(bias)
+                ptr += num_B
+
+                weight = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.weight)
+                layer.weight.data.copy_(weight)
+                ptr += num_B
+
+                run_m = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.running_mean)
+                layer.running_mean.data.copy_(run_m)
+                ptr += num_B
+
+                run_v = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.running_var)
+                layer.running_var.data.copy_(run_v)
+                ptr += num_B
+        fp.close()
+
+    def loadD(self):
+        '''
+             Load weights for discriminator
+        '''
+        with open(os.path.join(self.save_dir + self.model_name + '_D'), 'rb') as file:
+            fp = file
+        weights = np.fromfile(fp, dtype=np.float32)
+        ptr = 0
+
+        for layer in self.G.modules():
+            # Load weights for convolutional, linear and batch normalization layers
+            if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
+                num_B = layer.bias.numel()
+                bias = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.bias)
+                layer.bias.data.copy_(bias)
+                ptr += num_B
+
+                num_W = layer.weight.numel()
+                weight = torch.from_numpy(weights[ptr:ptr + num_W]).view_as(layer.weight)
+                layer.weight.data.copy_(weight)
+                ptr += num_W
+
+            elif isinstance(layer, nn.BatchNorm2d) or isinstance(layer, nn.BatchNorm1d):
+                num_B = layer.bias.numel()
+                bias = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.bias)
+                layer.bias.data.copy_(bias)
+                ptr += num_B
+
+                weight = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.weight)
+                layer.weight.data.copy_(weight)
+                ptr += num_B
+
+                run_m = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.running_mean)
+                layer.running_mean.data.copy_(run_m)
+                ptr += num_B
+
+                run_v = torch.from_numpy(weights[ptr:ptr + num_B]).view_as(layer.running_var)
+                layer.running_var.data.copy_(run_v)
+                ptr += num_B
+        fp.close()

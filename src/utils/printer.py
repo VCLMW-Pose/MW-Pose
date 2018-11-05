@@ -10,6 +10,8 @@ South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
 '''
 
+__all__ = ['print_network']
+
 import torch
 import torch.nn as nn
 import numpy as np

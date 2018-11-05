@@ -10,6 +10,8 @@ South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
 '''
 
+__all__ = ['logger']
+
 import matplotlib.pyplot as plt
 import numpy as np
 import sys

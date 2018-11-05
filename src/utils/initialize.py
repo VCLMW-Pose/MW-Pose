@@ -9,6 +9,9 @@
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
 '''
+
+__all__ = ['initialize_weight']
+
 import torch.nn as nn
 
 def initialize_weight(net):
