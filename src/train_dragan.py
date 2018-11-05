@@ -12,6 +12,7 @@ Vision Cognition Laboratory, 211189 Nanjing China
 
 import torch
 import argparse
+import numpy as np
 import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -22,9 +23,7 @@ from src.utils import logger
 
 def train(args):
     # Test set
-    z_test_set = []
-    for num in range(args.test_iter):
-        z_test_set.append(torch.rand((args.batch_size, args.z_dim)))
+    z_test_set = torch.rand((args.batch_size, args.z_dim))
 
     # Set training hyper parameters
     loss_min = float('inf')
@@ -125,13 +124,63 @@ def train(args):
                                                                                             losses[0], losses[1]))
 
         # Validation
+        validate(mnist_test, GAN, z_test_set, loss_min, gpu_mode, BCEloss, y_real, y_fake, args.batch_size, lambda_, k)
 
-def validate(testset, GAN, z_test, loss_min):
+def validate(testset, GAN, z_test, loss_min, gpu_mode, loss_function, y_real, y_fake, batch_size, lambda_, k):
     GAN.G.eval()
     GAN.D.eval()
+    losses = []
 
+    # Validation process
+    for i, x in enumerate(testset):
+        if gpu_mode:
+            x = x.cuda()
 
+            # Loss of discriminator
+            D_real = GAN.D(x)
+            D_real_loss = loss_function(D_real, y_real)
 
+            G = GAN.G(z_test)
+            D_fake = GAN.D(G)
+            D_fake_loss = loss_function(D_fake, y_fake)
+
+            # Gradient penalty
+            alpha = torch.rand(batch_size, 1, 1, 1)
+            x_p = x + 0.5 * x.std() * torch.rand(x.size())
+            if gpu_mode:
+                alpha = alpha.cuda()
+                x_p = x_p.cuda()
+            difference = x_p - x
+            interpolates = x + (alpha * difference)
+            interpolates.requires_grad = True
+            pred_hat = GAN.D(interpolates)
+            if gpu_mode:
+                gradients = grad(outputs=pred_hat, inputs=interpolates, grad_outputs=torch.ones(pred_hat.size()).cuda(),
+                                 create_graph=True, retain_graph=True, only_inputs=True)[0]
+
+            else:
+                gradients = grad(outputs=pred_hat, inputs=interpolates, grad_outputs=torch.ones(pred_hat.size()),
+                                 create_graph=True, retain_graph=True, only_inputs=True)[0]
+
+            gradient_penalty = lambda_ * ((gradients.view(gradients.size()[0], -1).norm(2, 1) - k) ** 2).mean()
+
+            # Back propagation for discriminator
+            D_loss = D_real_loss + D_fake_loss + gradient_penalty
+
+            # Loss of generator
+            G = GAN.G(z_test)
+            D_fake = GAN.D(G)
+            G_loss = loss_function(D_fake, y_real)
+
+            # Record loss
+            losses.append(G_loss.item() + D_loss.item())
+
+            # Output validation info
+            print('[Validation, Batch %d/%d] [Losses: G_loss %f, D_loss %f]' % (i + 1, len(testset),
+                                                                         G_loss.item(), D_loss.item()))
+
+    if np.array(losses).mean() < loss_min:
+        GAN.save()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DRAGAN Training Experiment:")
