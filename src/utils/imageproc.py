@@ -10,7 +10,7 @@ South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
 '''
 
-__all__ = ['scaling']
+__all__ = ['scaling', 'imwrite']
 
 import numpy as np
 import cv2
@@ -37,3 +37,14 @@ def scaling(img, channels, img_size):
     img = np.pad(img, ((pad_h, pad_h), (pad_w, pad_w)), 'constant', constant_values=128)
 
     return img
+
+
+def imwrite(img, save_dir):
+    '''
+    Args:
+         img         : (tensor) input image
+         save_dir    : save directory
+    '''
+    img = img.cpu().data.numpy()
+    img = img[:, :, ::-1].transpose((1, 2, 0))
+    cv2.imwrite(save_dir, img)

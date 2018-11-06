@@ -106,10 +106,6 @@ class DRAGAN():
              img_size       : (int)
              z_dim          : (int)
              x_dim          : (int)
-             lrG            : (float)
-             lrD            : (float)
-             beta1          : (float)
-             beta2          : (float)
         '''
         self.save_dir = save_dir
         self.model_name = model_name

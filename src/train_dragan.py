@@ -20,11 +20,12 @@ from torch.utils.data import DataLoader
 from torch.autograd import grad
 from src.model import DRAGAN
 from src.dataset import MNIST
-from src.utils import logger
+from src.utils import logger, imageproc
 
 def train(args):
     # Test set
     z_test_set = torch.rand((args.batch_size, args.z_dim))
+    z_sample = torch.rand((args.test_iter, args.z_dim))
 
     # Set training hyper parameters
     loss_min = float('inf')
@@ -35,6 +36,10 @@ def train(args):
     GAN = DRAGAN(args.save_dir, args.model_name, args.img_size, args.z_dim, args.x_dim)
     mnist = DataLoader(MNIST(args.dataset, 20), batch_size=args.batch_size, shuffle=True)
     mnist_test = DataLoader(MNIST(args.testset, 20), batch_size=args.batch_size, shuffle=True)
+
+    # Resume
+    if args.resume:
+        GAN.load()
 
     # Set logger
     log = logger(args.log_dir, args.model_name, args.resume)
@@ -57,6 +62,8 @@ def train(args):
         y_real, y_fake = y_real.cuda(), y_fake.cuda()
         GAN.G.cuda()
         GAN.D.cuda()
+        z_test_set = z_test_set.cuda()
+        z_sample = z_sample.cuda()
     if args.benchmark_mode:
         cudnn.benchmark = True
 
@@ -133,6 +140,7 @@ def train(args):
         # Validation
         validate(mnist_test, GAN, z_test_set, loss_min, gpu_mode, BCEloss, y_real, y_fake, args.batch_size, lambda_, k,
                                                                                                               log_test)
+        visualize_result(GAN, epoch, z_sample, args.result_dir)
 
 def validate(testset, GAN, z_test, loss_min, gpu_mode, loss_function, y_real, y_fake, batch_size, lambda_, k, logger):
     GAN.G.eval()
@@ -194,6 +202,13 @@ def validate(testset, GAN, z_test, loss_min, gpu_mode, loss_function, y_real, y_
                                                                                           G_loss.item() + D_loss.item()))
     if np.array(total_loss).mean() < loss_min:
         GAN.save()
+
+def visualize_result(GAN, epoch, z_sample, result_dir):
+    len = z_sample.shape[0]
+    for i in range(len):
+        img = GAN.G(z_sample[i])
+        imwrite(img, result_dir + '%d'% epoch + '_%05d'% i + '.jpg')
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DRAGAN Training Experiment:")
