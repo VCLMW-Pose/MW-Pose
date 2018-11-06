@@ -26,11 +26,9 @@ class logger():
         self.resume = resume
         # Start from scratch
         if resume == False:
-            with open(file_path, 'w') as file:
-                self.file = file
+            self.file = open(os.path.join('../' + file_path, title + '.txt'), 'w')
         else: # Resume from checkpoint
-            with open(file_path, 'r') as file:
-                self.file = file
+            self.file = open(os.path.join('../' + file_path, title + '.txt'), 'r')
             # Reading data tags
             tags = self.file.readline()
             self.tags = tags.rstrip().split('\t')
@@ -45,8 +43,7 @@ class logger():
                     self.data[self.tags[i]].append(data[i])
             self.file.close()
 
-            with open(file_path, 'a') as file:
-                self.file = file
+            self.file = open(os.path.join('../' + file_path, title + '.txt'), 'a')
 
     def set_tags(self, tags):
         if self.resume:
@@ -57,7 +54,7 @@ class logger():
         for _, tag in enumerate(self.tags):
             self.file.write(tag)
             self.file.write('\t')
-            self.number[tag] = []
+            self.data[tag] = []
 
         self.file.write('\n')
         self.file.flush()

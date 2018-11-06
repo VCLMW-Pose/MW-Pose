@@ -12,10 +12,11 @@ Vision Cognition Laboratory, 211189 Nanjing China
 
 __all__ = ['scaling', 'imwrite']
 
+import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
-def scaling(img, channels, img_size):
+def scaling(img, img_size):
     '''
     Args:
          img         : (numpy.array) input image
@@ -24,17 +25,17 @@ def scaling(img, channels, img_size):
     Returns:
          Scaled image
     '''
-    img_w, img_h = img.size[1], img.size[0]
+    img_w, img_h = img.shape[1], img.shape[0]
     # Getting new scales
-    new_w = img_w * min(img_size/img_h, img_size/img_w)
-    new_h = img_h * min(img_size/img_h, img_size/img_w)
+    new_w = int(img_w * min(img_size/img_h, img_size/img_w))
+    new_h = int(img_h * min(img_size/img_h, img_size/img_w))
     # Getting paddings
     pad_w = (img_size - new_w)//2
     pad_h = (img_size - new_h)//2
     # Resize
     img = cv2.resize(img, (img_w, img_h), interpolation=cv2.INTER_CUBIC)
     # Padding
-    img = np.pad(img, ((pad_h, pad_h), (pad_w, pad_w)), 'constant', constant_values=128)
+    img = np.pad(img, ((0, 0), (pad_h, pad_h), (pad_w, pad_w)), 'constant', constant_values=128)
 
     return img
 
@@ -45,6 +46,6 @@ def imwrite(img, save_dir):
          img         : (tensor) input image
          save_dir    : save directory
     '''
-    img = img.cpu().data.numpy()
-    img = img[:, :, ::-1].transpose((1, 2, 0))
+    img = img.squeeze(0).cpu().data.numpy()*255.0
+    img = np.array(img, dtype=int).transpose((1, 2, 0))[:, :, ::-1]
     cv2.imwrite(save_dir, img)

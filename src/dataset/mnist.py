@@ -4,7 +4,7 @@
 
     Author           : Shaoshu Yang
     Email            : shaoshuyangseu@gmail.com
-    Last edit date   : Sat Nov 5 24:00 2018
+    Last edit date   : Tues Nov 6 24:00 2018
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -12,8 +12,8 @@ Vision Cognition Laboratory, 211189 Nanjing China
 
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
-from src.utils.files import file_names
-from src.utils.imageproc import scaling
+from src.utils import file_names
+from src.utils import scaling
 import numpy as np
 import torch
 import cv2
@@ -39,9 +39,12 @@ class MNIST(Dataset):
              Required image (tensor)
         '''
         img = np.array(cv2.imread(self.img_list[idx]), dtype=float)
-        img = scaling(img, 3, 20)
+        img = scaling(img, 20)
         # Transform from BGR to RGB, HWC to CHW
         img = torch.FloatTensor(img[:, :, ::-1].transpose((2, 0, 1)).copy()).div(255.0)
 
         return img
+
+    def __len__(self):
+        return len(self.img_list)
 

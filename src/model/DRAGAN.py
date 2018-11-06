@@ -132,8 +132,7 @@ class DRAGAN():
              Save weights of generator and discriminator to corresponding binary file
         '''
         # Saving generator weights
-        with open(os.path.join(self.save_dir + self.model_name + '_G'), 'wb') as file:
-            fp = file
+        fp = open(os.path.join('../' + self.save_dir + self.model_name + '_G'), 'wb')
 
         for layer in self.G.modules():
             # Only deconvolutional layers, linear layers and batch normalization layers need to save weights
@@ -149,8 +148,7 @@ class DRAGAN():
 
         fp.close()
         # Saving discriminator weights
-        with open(os.path.join(self.save_dir + self.model_name + '_D'), 'wb') as file:
-            fp = file
+        fp = open(os.path.join('../' + self.save_dir + self.model_name + '_D'), 'wb')
 
         for layer in self.D.modules():
             # Only convolutional layers, linear layers and batch normalization layers need to save weights
@@ -175,8 +173,7 @@ class DRAGAN():
         '''
              Load weights for generator
         '''
-        with open(os.path.join(self.save_dir + self.model_name + '_G'), 'rb') as file:
-            fp = file
+        fp = open(os.path.join('../' + self.save_dir + self.model_name + '_G'), 'rb')
         weights = np.fromfile(fp, dtype=np.float32)
         ptr = 0
 
@@ -188,10 +185,10 @@ class DRAGAN():
                 layer.bias.data.copy_(bias)
                 ptr += num_B
 
-                num_W = layer.weight.numel()
-                weight = torch.from_numpy(weights[ptr:ptr + num_W]).view_as(layer.weight)
+                num_w = layer.weight.numel()
+                weight = torch.from_numpy(weights[ptr:ptr + num_w]).view_as(layer.weight)
                 layer.weight.data.copy_(weight)
-                ptr += num_W
+                ptr += num_w
 
             elif isinstance(layer, nn.BatchNorm2d) or isinstance(layer, nn.BatchNorm1d):
                 num_B = layer.bias.numel()
@@ -216,12 +213,11 @@ class DRAGAN():
         '''
              Load weights for discriminator
         '''
-        with open(os.path.join(self.save_dir + self.model_name + '_D'), 'rb') as file:
-            fp = file
+        fp = open(os.path.join('../' + self.save_dir + self.model_name + '_D'), 'rb')
         weights = np.fromfile(fp, dtype=np.float32)
         ptr = 0
 
-        for layer in self.G.modules():
+        for layer in self.D.modules():
             # Load weights for convolutional, linear and batch normalization layers
             if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
                 num_B = layer.bias.numel()
