@@ -4,7 +4,7 @@
 
     Author           : Shaoshu Yang
     Email            : shaoshuyangseu@gmail.com
-    Last edit date   : Sat Sun Nov 4 24:00 2018
+    Last edit date   : Sun Nov 4 24:00 2018
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
