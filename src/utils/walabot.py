@@ -21,46 +21,57 @@ class walabot():
         self.walabot = WalabotAPI
         self.walabot.Init()
         self.walabot.SetSettingsFolder()
+        print('Walabot initialized!')
 
     def __delete__(self):
         self.walabot.Stop()
         self.walabot.Disconnect()
 
-    def Initialize(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mti=True):
+    def init(self):
+        return self.heatmap,
+
+    def scan(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mti=True):
         self.walabot.ConnectAny()
         self.walabot.SetProfile(self.walabot.PROF_SENSOR)
         self.walabot.SetArenaR(minR, maxR, resR)
         self.walabot.SetArenaTheta(minTheta, maxTheta, resTheta)
         self.walabot.SetArenaPhi(minPhi, maxPhi, resPhi)
         self.walabot.SetThreshold(threshold)
-        self.phi, self.theta = np.meshgrid(np.linespace(minPhi, maxPhi, (maxPhi - minPhi)/2 + 1),
-                                           np.linespace(minTheta, maxTheta, (maxTheta, minTheta)/2 + 1))
+        self.phi, self.theta = list(range(minPhi, maxPhi, resPhi)) + [maxPhi], \
+                                                            list(range(minTheta, maxTheta, resTheta)) + [maxTheta]
+        self.pos = np.array([list((phi, theta)) for phi in self.phi for theta in self.theta]).transpose()
 
         if mti:
             self.walabot.SetDynamicImageFilter(self.walabot.FILTER_TYPE_MTI)
-
+        print('Walabot configuration complete!')
         self.walabot.Start()
         self.walabot.StartCalibration()
-        plt.figure()
+        print('Walabot proceeding scanning!')
 
-        def update():
-            self.walabot.Trigger()
-            rawimage, _, _, _, _ = self.walabot.GetRawImage()
-            rawimage = np.array(rawimage)
+        self.fig = plt.figure(figsize=((maxPhi - minPhi), (maxTheta - minTheta)))
+        self.ax = self.fig.add_subplot(111)
+        #self.ax.set_xlim(minPhi, maxPhi)
+        #self.ax.set_ylim(minTheta, maxTheta)
 
-            print(rawimage.shape)
+        M, _, _, _, _ = self.walabot.GetRawImage()
+        M = np.array(M)[5]
+        self.heatmap = self.ax.pcolormesh(M, cmap='jet')
+        self.fig.colorbar(self.heatmap)
 
-    def get_image(self):
-        active = True
-        while active:
-            self.walabot.Trigger()
-            rawimage, _, _, _, _ = self.walabot.GetRawImage()
-            rawimage = np.array(rawimage)
-            return rawimage
+        anima = animation.FuncAnimation(self.fig, self.update, init_func=self.init, repeat=False, interval=0,
+                                                                                                        blit=True)
+        plt.show()
+
+    def update(self, image):
+        self.walabot.Trigger()
+        rawimage, _, _, _, _ = self.walabot.GetRawImage()
+        rawimage = np.array(rawimage)[5]
+        self.heatmap = self.ax.pcolormesh(rawimage, cmap='jet')
+        return self.heatmap,
 
 if __name__ == '__main__':
     Walabot = walabot()
-    Walabot.Initialize(10, 300, 10, -30, 30, 2, -30 ,30 ,2, 15)
+    Walabot.scan(10, 300, 10, -30, 30, 2, -30 ,30 ,2, 35)
 
 
 
