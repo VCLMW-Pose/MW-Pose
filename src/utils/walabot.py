@@ -18,36 +18,55 @@ from matplotlib import animation
 
 class walabot():
     def __init__(self):
+        '''
+        Walabot initialization
+        '''
         self.walabot = WalabotAPI
         self.walabot.Init()
         self.walabot.SetSettingsFolder()
-        print('Walabot initialized!')
 
     def __delete__(self):
         self.walabot.Stop()
         self.walabot.Disconnect()
 
     def init(self):
+        '''
+        init routine for animation
+        '''
         return self.heatmap,
 
     def scan(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mti=True):
+        '''
+        Args:
+             minR        : (int) scan arena configuration parameter, minimum distance
+             maxR        : (int) maximum distance of scan arena
+             resR        : (float) resolution of depth
+             minTheta    : (int) minimum theta
+             maxTheta    : (int) maximum theta
+             resTheta    : (int) vertical angular resolution
+             minPhi      : (int) minimum phi
+             maxPhi      : (int) maximum phi
+             resPhi      : (int) horizontal angular resolution
+             threshold   : (int) threshold for weak signals
+             mti         : (boolean) ignore static reflectors
+        '''
+        # Walabot configuration
         self.walabot.ConnectAny()
         self.walabot.SetProfile(self.walabot.PROF_SENSOR)
         self.walabot.SetArenaR(minR, maxR, resR)
         self.walabot.SetArenaTheta(minTheta, maxTheta, resTheta)
         self.walabot.SetArenaPhi(minPhi, maxPhi, resPhi)
         self.walabot.SetThreshold(threshold)
-        self.phi, self.theta = list(range(minPhi, maxPhi, resPhi)) + [maxPhi], \
-                                                            list(range(minTheta, maxTheta, resTheta)) + [maxTheta]
-        self.pos = np.array([list((phi, theta)) for phi in self.phi for theta in self.theta]).transpose()
 
+        # Ignore static reflector
         if mti:
             self.walabot.SetDynamicImageFilter(self.walabot.FILTER_TYPE_MTI)
-        print('Walabot configuration complete!')
+
+        # Start scanning
         self.walabot.Start()
         self.walabot.StartCalibration()
-        print('Walabot proceeding scanning!')
 
+        # Plot animation
         self.fig = plt.figure(figsize=((maxPhi - minPhi), (maxTheta - minTheta)))
         self.ax = self.fig.add_subplot(111)
         #self.ax.set_xlim(minPhi, maxPhi)
@@ -63,6 +82,9 @@ class walabot():
         plt.show()
 
     def update(self, image):
+        '''
+        update routine for animation
+        '''
         self.walabot.Trigger()
         rawimage, _, _, _, _ = self.walabot.GetRawImage()
         rawimage = np.array(rawimage)[5]
