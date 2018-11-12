@@ -10,7 +10,7 @@ South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
 '''
 
-__all__ = ['scaling', 'imwrite']
+__all__ = ['scaling', 'imwrite', 'sumup']
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,3 +49,19 @@ def imwrite(img, save_dir):
     img = img.squeeze(0).cpu().data.numpy()*255.0
     img = np.array(img, dtype=int).transpose((1, 2, 0))[:, :, ::-1]
     cv2.imwrite(save_dir, img)
+
+def sumup(img):
+    '''
+    Args:
+         img         : (np.array) heat maps to be sum up
+    Returns:
+         Adding all slices of heat map to a two-dimension matrix
+    '''
+    n = img.shape[2]
+    sumimg = img[: ,:, 0]
+
+    for i in range(1, n):\
+        sumimg = sumimg + img[:, :, i]
+
+    return sumimg
+

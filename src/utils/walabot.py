@@ -4,15 +4,18 @@
 
     Author           : Shaoshu Yang
     Email            : shaoshuyangseu@gmail.com
-    Last edit date   : Sun Nov 11 24:00 2018
+    Last edit date   : Mon Nov 12 18:21 2018
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
 '''
 
+__all__ = ['walabot']
+
 import matplotlib.pyplot as plt
 import WalabotAPI
 import numpy as np
+from src.utils.imageproc import *
 from sys import platform
 from matplotlib import animation
 
@@ -35,7 +38,7 @@ class walabot():
         '''
         return self.heatmap,
 
-    def scan(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mti=True):
+    def scan_test(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mti=True):
         '''
         Args:
              minR        : (int) scan arena configuration parameter, minimum distance
@@ -91,9 +94,62 @@ class walabot():
         self.heatmap = self.ax.pcolormesh(rawimage, cmap='jet')
         return self.heatmap,
 
+    def initialize(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mti=True):
+        '''
+        Args:
+             minR        : (int) scan arena configuration parameter, minimum distance
+             maxR        : (int) maximum distance of scan arena
+             resR        : (float) resolution of depth
+             minTheta    : (int) minimum theta
+             maxTheta    : (int) maximum theta
+             resTheta    : (int) vertical angular resolution
+             minPhi      : (int) minimum phi
+             maxPhi      : (int) maximum phi
+             resPhi      : (int) horizontal angular resolution
+             threshold   : (int) threshold for weak signals
+             mti         : (boolean) ignore static reflectors
+        Returns:
+             Initialize walabot and complete configuration
+        '''
+        # Walabot configuration
+        self.walabot.ConnectAny()
+        self.walabot.SetProfile(self.walabot.PROF_SENSOR)
+        self.walabot.SetArenaR(minR, maxR, resR)
+        self.walabot.SetArenaTheta(minTheta, maxTheta, resTheta)
+        self.walabot.SetArenaPhi(minPhi, maxPhi, resPhi)
+        self.walabot.SetThreshold(threshold)
+
+        # Ignore static reflector
+        if mti:
+            self.walabot.SetDynamicImageFilter(self.walabot.FILTER_TYPE_MTI)
+
+        # Start scanning
+        self.walabot.Start()
+        self.walabot.StartCalibration()
+
+    def get_frame(self):
+        self.walabot.Trigger()
+        # Getting heat maps and add up to a 2D matrix
+        heatmap, _, _, _, _ = self.walabot.GetRawImage()
+        heatmap = np.array(heatmap)
+        heatmap = sumup(heatmap)
+
+        # Generalization
+        heatmap = (heatmap + heatmap.min())/heatmap.max()
+
+        return heatmap
+
+    def get_frame_slice(self):
+        self.walabot.Trigger()
+        # Getting heat maps in R and phi
+        heatmap, _, _, _, _ = self.walabot.GetRawImageSlice()
+        heatmap = np.array(heatmap)
+
+        return heatmap
+
 if __name__ == '__main__':
     Walabot = walabot()
-    Walabot.scan(10, 300, 10, -30, 30, 2, -30 ,30 ,2, 35)
+    Walabot.scan_test(10, 300, 10, -30, 30, 2, -30 ,30 ,2, 35)
 
 
 
