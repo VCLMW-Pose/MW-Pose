@@ -60,8 +60,9 @@ def sumup(img):
     n = img.shape[2]
     sumimg = img[: ,:, 0]
 
-    for i in range(1, n):\
+    for i in range(1, n):
         sumimg = sumimg + img[:, :, i]
 
+    print(sumimg.shape)
     return sumimg
 
