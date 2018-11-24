@@ -4,7 +4,7 @@
 
     Author           : Shaoshu Yang
     Email            : shaoshuyangseu@gmail.com
-    Last edit date   : Mon Nov 12 18:21 2018
+    Last edit date   : Mon Nov 21 16:15 2018
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -38,7 +38,7 @@ class walabot():
         '''
         return self.heatmap,
 
-    def scan_test(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mti=True):
+    def scan_test(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mode, mti=True):
         '''
         Args:
              minR        : (int) scan arena configuration parameter, minimum distance
@@ -51,6 +51,7 @@ class walabot():
              maxPhi      : (int) maximum phi
              resPhi      : (int) horizontal angular resolution
              threshold   : (int) threshold for weak signals
+             mode        : (string) scan mode
              mti         : (boolean) ignore static reflectors
         '''
         # Walabot configuration
@@ -76,60 +77,21 @@ class walabot():
         #self.ax.set_xlim(minPhi, maxPhi)
         #self.ax.set_ylim(minTheta, maxTheta)
 
-        M, _, _, _, _ = self.walabot.GetRawImage()
-        M = sumup(np.array(M))
-        print(M.shape)
+        if mode == "horizontal":
+            M, _, _, _, _ = self.walabot.GetRawImageSlice()
+        elif mode == "perpendicular":
+            M, _, _, _, _ = self.walabot.GetRawImage()
+            M = sumup_perpendicular(np.array(M))
+            M.transpose(1, 0)
+
         self.heatmap = self.ax.pcolormesh(M, cmap='jet')
         self.fig.colorbar(self.heatmap)
 
-        anima = animation.FuncAnimation(self.fig, self.update, init_func=self.init, repeat=False, interval=0,
+        if mode == "horizontal":
+            anima = animation.FuncAnimation(self.fig, self.updateslice, init_func=self.init, repeat=False, interval=0,
                                                                                                         blit=True)
-        plt.show()
-
-    def scanslice_test(self, minR, maxR, resR, minTheta, maxTheta, resTheta, minPhi, maxPhi, resPhi, threshold, mti=True):
-        '''
-        Args:
-             minR        : (int) scan arena configuration parameter, minimum distance
-             maxR        : (int) maximum distance of scan arena
-             resR        : (float) resolution of depth
-             minTheta    : (int) minimum theta
-             maxTheta    : (int) maximum theta
-             resTheta    : (int) vertical angular resolution
-             minPhi      : (int) minimum phi
-             maxPhi      : (int) maximum phi
-             resPhi      : (int) horizontal angular resolution
-             threshold   : (int) threshold for weak signals
-             mti         : (boolean) ignore static reflectors
-        '''
-        # Walabot configuration
-        self.walabot.ConnectAny()
-        self.walabot.SetProfile(self.walabot.PROF_SENSOR)
-        self.walabot.SetArenaR(minR, maxR, resR)
-        self.walabot.SetArenaTheta(minTheta, maxTheta, resTheta)
-        self.walabot.SetArenaPhi(minPhi, maxPhi, resPhi)
-        self.walabot.SetThreshold(threshold)
-
-        # Ignore static reflector
-        if mti:
-            self.walabot.SetDynamicImageFilter(self.walabot.FILTER_TYPE_MTI)
-
-        # Start scanning
-        self.walabot.Start()
-        self.walabot.StartCalibration()
-
-        # Plot animation
-        self.fig = plt.figure()
-        #self.fig = plt.figure(figsize=((maxPhi - minPhi), (maxTheta - minTheta)))
-        self.ax = self.fig.add_subplot(111)
-        #self.ax.set_xlim(minPhi, maxPhi)
-        #self.ax.set_ylim(minTheta, maxTheta)
-
-        M, _, _, _, _ = self.walabot.GetRawImageSlice()
-        M = np.array(M)
-        self.heatmap = self.ax.pcolormesh(M, cmap='jet')
-        self.fig.colorbar(self.heatmap)
-
-        anima = animation.FuncAnimation(self.fig, self.updateslice, init_func=self.init, repeat=False, interval=0,
+        elif mode == "perpendicular":
+            anima = animation.FuncAnimation(self.fig, self.update, init_func=self.init, repeat=False, interval=0,
                                                                                                         blit=True)
         plt.show()
 
@@ -139,7 +101,8 @@ class walabot():
         '''
         self.walabot.Trigger()
         rawimage, _, _, _, _ = self.walabot.GetRawImage()
-        rawimage = sumup(np.array(rawimage))
+        rawimage = sumup_perpendicular(np.array(rawimage))
+        rawimge = rawimage.transpose(1, 0)
         self.heatmap = self.ax.pcolormesh(rawimage, cmap='jet')
         return self.heatmap,
 
@@ -206,6 +169,11 @@ class walabot():
 
         return heatmap
 
+    def get_frame_verticle(self):
+        self.walabot.Trigger()
+        # Getting heat maps in R and theta
+        heatmap, _, _, _, _ = self.walabot.GetRawImage()
+
 if __name__ == '__main__':
     Walabot = walabot()
-    Walabot.scanslice_test(10, 300, 5, -20, 20, 10, -45 ,45 ,3, 15, True)
+    Walabot.scan_test(10, 300, 10, -20, 20, 2, -75, 75, 15 , 15, "horizontal", False)
