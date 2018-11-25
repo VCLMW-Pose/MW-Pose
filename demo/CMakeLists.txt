@@ -18,7 +18,7 @@ set(OpenCV_LIBS opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
 include_directories(${WALABOT_INCLUDE_DIR})
 
-add_executable(demo main.cpp walabot.hpp)
+add_executable(demo main.cpp walabot.hpp walabot.cpp walabot_test.cpp)
 
 target_link_libraries(demo ${WALABOT_LIB})
 target_link_libraries(demo ${OpenCV_LIBS})

@@ -2,12 +2,17 @@
 //
 //     Author           : Shaoshu Yang
 //     Email            : shaoshuyangseu@gmail.com
-//     Last edit date   : Nov 24 24:00 2018
+//     Last edit date   : Nov 25 9:31 2018
 //
 //South East University Automation College, 211189 Nanjing China
 
 #ifndef DEMO_WALABOT_HPP
 #define DEMO_WALABOT_HPP
+#ifdef __LINUX__
+#define CONFIG_FILE_PATH "/etc/walabotsdk.conf"
+#else
+#define CONFIG_FILE_PATH "C:\\Program Files\\Walabot\\WalabotSDK\\bin\\.config"
+#endif
 
 #include <WalabotAPI.h>
 #include <opencv2/core/core.hpp>
@@ -17,41 +22,43 @@
 
 using namespace cv;
 
-typedef double _angular_arena;                                                                      // Angular arena scale in angle
-typedef double _depth_arena;                                                                        // Depth arena scale in centimeter
-typedef double _depth_resol;                                                                        // Depth resolution in centimeter
-typedef double _angular_resol;                                                                      // Angular resolution in angle
-typedef bool _filter;
-typedef int _scan_prof;                                                                             // Scan profile
+typedef double ANGULAR_ARENA;                                                                      // Angular arena scale in angle
+typedef double DEPTH_ARENA;                                                                        // Depth arena scale in centimeter
+typedef double DEPTH_RESOL;                                                                        // Depth resolution in centimeter
+typedef double ANGULAR_RESOL;                                                                      // Angular resolution in angle
+typedef bool FILTER;
+typedef int SCAN_PROF;                                                                             // Scan profile
+typedef double THRES;                                                                              // Threshold
 
 class walabot
 {
-    const _scan_prof SCAN_HORIZONTAL = 0;                                                           // Project energies to horizontal plane
-    const _scan_prof SCAN_PERPENDICULAR = 1;                                                        // Project energies to perpendicular plane
+    const SCAN_PROF SCAN_HORIZONTAL = 0;                                                           // Project energies to horizontal plane
+    const SCAN_PROF SCAN_PERPENDICULAR = 1;                                                        // Project energies to perpendicular plane
 
 private:
     /* Basic coefficient of walabot scanning profile.*/
-    _depth_arena _r_min;                                                                            // Minimum depth of scanning arena
-    _depth_arena _r_max;                                                                            // Maximum depth of scanning arena
-    _depth_resol _r_res;                                                                            // Depth spatial resolution
+    DEPTH_ARENA _r_min;                                                                            // Minimum depth of scanning arena
+    DEPTH_ARENA _r_max;                                                                            // Maximum depth of scanning arena
+    DEPTH_RESOL _r_res;                                                                            // Depth spatial resolution
 
-    _angular_arena _phi_min;                                                                        // Minimum phi angle
-    _angular_arena _phi_max;                                                                        // Maximum phi angle
-    _angular_resol _phi_res;                                                                        // Angular resolution of phi
+    ANGULAR_ARENA _phi_min;                                                                        // Minimum phi angle
+    ANGULAR_ARENA _phi_max;                                                                        // Maximum phi angle
+    ANGULAR_RESOL _phi_res;                                                                        // Angular resolution of phi
 
-    _angular_arena _theta_min;                                                                      // Minimum theta angle
-    _angular_arena _theta_max;                                                                      // Maximum theta angle
-    _angular_resol _theta_res;                                                                      // Angular resolution of theta
+    ANGULAR_ARENA _theta_min;                                                                      // Minimum theta angle
+    ANGULAR_ARENA _theta_max;                                                                      // Maximum theta angle
+    ANGULAR_RESOL _theta_res;                                                                      // Angular resolution of theta
 
-    _filter _MTI;                                                                                   // Applying dynamic reflector filter
+    FILTER _MTI;                                                                                   // Applying dynamic reflector filter
+    THRES _threshold;                                                                              // Threshold of detectable signal
 
 public:
     /* Default constructor and destructor of walabot class. Walabot must be intialized with a
      * set of coefficients. The constructor routine would not initialize walabot, hence it can
      * not perform scanning immediately. The defualt destructor would disconncect walabot automatically.*/
-    walabot(_depth_arena r_min, _depth_arena r_max, _depth_resol r_res, _angular_arena phi_min, _angular_arena phi_max,
-                    _angular_resol phi_res, _angular_arena theta_min, _angular_arena theta_max, _angular_resol theta_res);
-                                                                                                    // Defualt constructor
+    walabot(DEPTH_ARENA r_min, DEPTH_ARENA r_max, DEPTH_RESOL r_res, ANGULAR_ARENA phi_min, ANGULAR_ARENA phi_max,
+            ANGULAR_RESOL phi_res, ANGULAR_ARENA theta_min, ANGULAR_ARENA theta_max, ANGULAR_RESOL theta_res, FILTER filter,
+            THRES threshold);                                                                      // Defualt constructor
     ~walabot();                                                                                     // Defualt destructor
 
     /* State control routine for walabot. After applying start routine, walabot can perform scanning and
@@ -63,22 +70,23 @@ public:
     /* Configuration routines for walabot. Ensure disconnect is applied before adopting these coefficients
      * modification routines. They were for horizontal, perpendicular and depth parameters modification
      * separately. */
-    bool set_phi(const _angular_arena phi_min, const _angular_arena phi_max, const _angular_resol phi_res);
-    bool set_theta(const _angular_arena theta_min, const _angular_arena theta_max, const _angular_resol theta_res);
-    bool set_r(const _depth_arena r_min, const _depth_arena r_max, const _depth_resol r_res);
+    bool set_phi(const ANGULAR_ARENA phi_min, const ANGULAR_ARENA phi_max, const ANGULAR_RESOL phi_res);
+    bool set_theta(const ANGULAR_ARENA theta_min, const ANGULAR_ARENA theta_max, const ANGULAR_RESOL theta_res);
+    bool set_r(const DEPTH_ARENA r_min, const DEPTH_ARENA r_max, const DEPTH_RESOL r_res);
                                                                                                     // Phi scale modification
                                                                                                     // Theta scale modification
                                                                                                     // Depth scale modification
-
-    bool set_filter(const _filter filter);                                                          // Reset motion target identification filter
+    bool set_thres(const THRES threshold);                                                          // Threshold modification
+    bool set_filter(const FILTER filter);                                                           // Reset motion target identification filter
 
     /* Scanning routine for walabot. The direction of projection can be determined by the parameter scan_prof.
      * These routines stores collected data in cv::Mat. */
-    Mat & get_frame(const _scan_prof scan_prof);                                                    // Get single frame
-    Mat * scan(const _scan_prof scan_prof);                                                         // Get projections over both planes
+    Mat & get_frame(const SCAN_PROF scan_prof);                                                     // Get single frame
+    Mat * scan(const SCAN_PROF scan_prof);                                                          // Get projections over both planes
 
     /* Private test routines. Provide visual outputs of scanning profiles*/
-    void _scan_test(const _scan_prof scan_prof);                                                    // Scan test
+    void _scan_test(const SCAN_PROF scan_prof);                                                     // Scan test
+    void _check_status(WALABOT_RESULT & _status);                                                   // Check running status of walabot
 };
 
 #endif //DEMO_WALABOT_HPP
