@@ -182,7 +182,7 @@ Mat & walabot::get_frame(const SCAN_PROF _scan_prof)
 
 }
 
-Mat * walabot::scan(const SCAN_PROF scan_prof)
+/*Mat * walabot::scan(const SCAN_PROF scan_prof)
 {
 
 }
@@ -190,7 +190,7 @@ Mat * walabot::scan(const SCAN_PROF scan_prof)
 void walabot::_scan_test(const SCAN_PROF scan_prof)
 {
 
-}
+}*/
 
 void walabot::_check_status(WALABOT_RESULT & _status)
 /* Check the running status of walabot. It throws runtime_error exception if any error occurs in the operation
@@ -237,11 +237,11 @@ void walabot::_delete_canvas(int *** _canvas, const size_t & _x, const size_t & 
     delete[] _canvas;
 }
 
-Mat & _sum_horizontal(const Mat & _img, const size_t & _x, const size_t & _y)
+/*Mat & _sum_horizontal(const Mat & _img, const size_t & _x, const size_t & _y)
 {
 }
 
 Mat & _sum_perpendicular(const Mat & _img, const size_t & _x, const size_t & _y)
 {
 
-}
+}*/

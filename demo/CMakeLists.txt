@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(demo)
 
-set(SOURCE_FILES main.cpp walabot.cpp walabot.hpp walabot_test.cpp)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 
@@ -19,7 +18,15 @@ set(OpenCV_LIBS opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
 include_directories(${WALABOT_INCLUDE_DIR})
 
-add_executable(demo ${SOURCE_FILES})
-
-target_link_libraries(demo ${WALABOT_LIB})
+add_executable(demo main.cpp walabot.cpp walabot.hpp walabot_test.cpp)
 target_link_libraries(demo ${OpenCV_LIBS})
+
+foreach (TARGET_NAME demo
+
+    target_link_libraries(${TARGET_NAME} ${WALABOT_LIB})
+
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${WALABOT_DLL} ${LIBUSB_DLL} ${QT_DLL}
+            $<TARGET_FILE_DIR:${TARGET_NAME}>))
+endforeach()

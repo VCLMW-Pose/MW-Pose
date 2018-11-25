@@ -14,7 +14,7 @@
 #define CONFIG_FILE_PATH "C:\\Program Files\\Walabot\\WalabotSDK\\bin\\.config"
 #endif
 
-#include <WalabotAPI.h>
+#include "WalabotAPI.h"
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <exception>
