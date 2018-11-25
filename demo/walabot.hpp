@@ -34,6 +34,8 @@ class walabot
 {
     const SCAN_PROF SCAN_HORIZONTAL = 0;                                                           // Project energies to horizontal plane
     const SCAN_PROF SCAN_PERPENDICULAR = 1;                                                        // Project energies to perpendicular plane
+    const FILTER NO_APPLYING_MTI = false;                                                          // MTI filter constant
+    const FILTER ACTIVATE_MTI = true;                                                              // MTI filter constant
 
 private:
     /* Basic coefficient of walabot scanning profile.*/
@@ -58,35 +60,40 @@ public:
      * not perform scanning immediately. The defualt destructor would disconncect walabot automatically.*/
     walabot(DEPTH_ARENA r_min, DEPTH_ARENA r_max, DEPTH_RESOL r_res, ANGULAR_ARENA phi_min, ANGULAR_ARENA phi_max,
             ANGULAR_RESOL phi_res, ANGULAR_ARENA theta_min, ANGULAR_ARENA theta_max, ANGULAR_RESOL theta_res, FILTER filter,
-            THRES threshold);                                                                      // Defualt constructor
+            THRES threshold);                                                                       // Defualt constructor
     ~walabot();                                                                                     // Defualt destructor
 
     /* State control routine for walabot. After applying start routine, walabot can perform scanning and
      * collecting images. disconnect routine provides manual shut down means to modify the scanning
      * profiles.*/
-    bool start();                                                                                   // Start up
-    bool disconnect();                                                                              // Shut down
+    void start();                                                                                   // Start up
+    void disconnect();                                                                              // Shut down
 
     /* Configuration routines for walabot. Ensure disconnect is applied before adopting these coefficients
      * modification routines. They were for horizontal, perpendicular and depth parameters modification
      * separately. */
-    bool set_phi(const ANGULAR_ARENA phi_min, const ANGULAR_ARENA phi_max, const ANGULAR_RESOL phi_res);
-    bool set_theta(const ANGULAR_ARENA theta_min, const ANGULAR_ARENA theta_max, const ANGULAR_RESOL theta_res);
-    bool set_r(const DEPTH_ARENA r_min, const DEPTH_ARENA r_max, const DEPTH_RESOL r_res);
+    void set_phi(ANGULAR_ARENA phi_min, ANGULAR_ARENA phi_max, ANGULAR_RESOL phi_res);
+    void set_theta(ANGULAR_ARENA theta_min, ANGULAR_ARENA theta_max, ANGULAR_RESOL theta_res);
+    void set_r(DEPTH_ARENA r_min, DEPTH_ARENA r_max, DEPTH_RESOL r_res);
                                                                                                     // Phi scale modification
                                                                                                     // Theta scale modification
                                                                                                     // Depth scale modification
-    bool set_thres(const THRES threshold);                                                          // Threshold modification
-    bool set_filter(const FILTER filter);                                                           // Reset motion target identification filter
+    void set_thres(THRES threshold);                                                                // Threshold modification
+    void set_filter(FILTER filter);                                                                 // Reset motion target identification filter
+    void set_scan_profile(APP_PROFILE profile);                                                     // Reset scanning profile
 
     /* Scanning routine for walabot. The direction of projection can be determined by the parameter scan_prof.
      * These routines stores collected data in cv::Mat. */
-    Mat & get_frame(const SCAN_PROF scan_prof);                                                     // Get single frame
-    Mat * scan(const SCAN_PROF scan_prof);                                                          // Get projections over both planes
+    Mat & get_frame(SCAN_PROF scan_prof);                                                           // Get single frame
+    Mat * scan(SCAN_PROF scan_prof);                                                                // Get projections over both planes
 
     /* Private test routines. Provide visual outputs of scanning profiles*/
-    void _scan_test(const SCAN_PROF scan_prof);                                                     // Scan test
+    void _scan_test(SCAN_PROF scan_prof);                                                           // Scan test
     void _check_status(WALABOT_RESULT & _status);                                                   // Check running status of walabot
+    int *** _get_canvas(const size_t & _x, const size_t & _y, const size_t & _z);                   // Get blank canvas
+    void _delete_canvas(int *** _canvas, const size_t & _x, const size_t & _y);                     // Free memory of canvas
+    Mat & _sum_horizontal(Mat & _img);                                                              // Projection to horizontal plane
+    Mat & _sum_perpendicular(Mat & _img);                                                           // Projection to perpendicular plane
 };
 
 #endif //DEMO_WALABOT_HPP
