@@ -10,7 +10,7 @@ South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
 '''
 
-__all__ = ['scaling', 'imwrite', 'sumup']
+__all__ = ['scaling', 'imwrite', 'sumup', 'sumup_perpendicular']
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -57,12 +57,27 @@ def sumup(img):
     Returns:
          Adding all slices of heat map to a two-dimension matrix
     '''
-    n = img.shape[2]
-    sumimg = img[: ,:, 0]
+    n = img.shape[0]
+    sumimg = img[0 ,:, :]
 
     for i in range(1, n):
-        sumimg = sumimg + img[:, :, i]
+        sumimg = sumimg + img[i, :, :]
 
-    print(sumimg.shape)
+    #print(sumimg.shape)
+    return sumimg
+
+def sumup_perpendicular(img):
+    '''
+    Args:
+         img          : (np.array) heat maps to sum up
+    Returns:
+         Adding all slices of heat map to two-dimension matrix perpendicularly
+    '''
+    n = img.shape[1]
+    sumimg = img[:, 0, :]
+
+    for i in range(1, n):
+        sumimg = sumimg + img[:, i, :]
+
     return sumimg
 
