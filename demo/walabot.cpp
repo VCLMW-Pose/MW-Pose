@@ -237,11 +237,11 @@ void walabot::_delete_canvas(int *** _canvas, const size_t & _x, const size_t & 
     delete[] _canvas;
 }
 
-Mat & _sum_horizontal(const Mat & _img)
+Mat & _sum_horizontal(const Mat & _img, const size_t & _x, const size_t & _y)
 {
 }
 
-Mat & _sum_perpendicular(const Mat & _img)
+Mat & _sum_perpendicular(const Mat & _img, const size_t & _x, const size_t & _y)
 {
 
 }

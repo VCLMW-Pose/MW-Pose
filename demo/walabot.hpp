@@ -92,8 +92,8 @@ public:
     void _check_status(WALABOT_RESULT & _status);                                                   // Check running status of walabot
     int *** _get_canvas(const size_t & _x, const size_t & _y, const size_t & _z);                   // Get blank canvas
     void _delete_canvas(int *** _canvas, const size_t & _x, const size_t & _y);                     // Free memory of canvas
-    Mat & _sum_horizontal(Mat & _img);                                                              // Projection to horizontal plane
-    Mat & _sum_perpendicular(Mat & _img);                                                           // Projection to perpendicular plane
+    Mat & _sum_horizontal(Mat & _img, const size_t & _x, const size_t & _y);                        // Projection to horizontal plane
+    Mat & _sum_perpendicular(Mat & _img, const size_t & _x, const size_t & _y);                     // Projection to perpendicular plane
 };
 
 #endif //DEMO_WALABOT_HPP

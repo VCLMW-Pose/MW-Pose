@@ -176,4 +176,4 @@ class walabot():
 
 if __name__ == '__main__':
     Walabot = walabot()
-    Walabot.scan_test(10, 300, 10, -20, 20, 2, -75, 75, 15 , 15, "horizontal", False)
+    Walabot.scan_test(10, 600, 10, -20, 20, 2, -90, 90, 10, 15, "horizontal", False)

@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.12)
 project(demo)
 
+set(SOURCE_FILES main.cpp walabot.cpp walabot.hpp walabot_test.cpp)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 
-set(OpenCV_DIR "C:\\opencv\\opencv\\mingw64_build\\install")
+set(OpenCV_DIR "D:\\opencv\\mingw64_build\\install")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -18,7 +19,7 @@ set(OpenCV_LIBS opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
 
 include_directories(${WALABOT_INCLUDE_DIR})
 
-add_executable(demo main.cpp walabot.hpp walabot.cpp walabot_test.cpp)
+add_executable(demo ${SOURCE_FILES})
 
 target_link_libraries(demo ${WALABOT_LIB})
 target_link_libraries(demo ${OpenCV_LIBS})
