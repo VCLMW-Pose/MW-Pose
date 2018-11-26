@@ -11,11 +11,14 @@ using namespace cv;
 
 int main()
 {
-    int size[] = {2, 3, 4};
+    int size[] = {2, 12};
+    walabot wlbt(0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0);
+    int scalar[] = {1, 2, 3, 4 ,5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ,16, 17, 18, 19, 20, 21, 22, 23, 24};
 
-    Mat mat(3, size, CV_8U, Scalar(1));
-    Mat test = mat(Range::all(), Range(0, 1));
+    Mat mat(2, 12, CV_32S, scalar);
+    std::cout << mat << std::endl;
+    Mat test = wlbt._sum_horizontal(mat, 2, 3, 4);
     std::cout << test << std::endl;
-
+    std::cout << mat << std::endl;
     return 0;
 }

@@ -4,7 +4,7 @@ project(demo)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 
-set(OpenCV_DIR "D:\\opencv\\mingw64_build\\install")
+set(OpenCV_DIR "C:\\opencv\\opencv\\mingw64_build\\install")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -21,12 +21,12 @@ include_directories(${WALABOT_INCLUDE_DIR})
 add_executable(demo main.cpp walabot.cpp walabot.hpp walabot_test.cpp)
 target_link_libraries(demo ${OpenCV_LIBS})
 
-foreach (TARGET_NAME demo
+foreach (TARGET_NAME demo)
 
     target_link_libraries(${TARGET_NAME} ${WALABOT_LIB})
 
     add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${WALABOT_DLL} ${LIBUSB_DLL} ${QT_DLL}
-            $<TARGET_FILE_DIR:${TARGET_NAME}>))
+            $<TARGET_FILE_DIR:${TARGET_NAME}>)
 endforeach()
