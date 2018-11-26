@@ -181,21 +181,15 @@ Mat & walabot::get_frame(const SCAN_PROF _scan_prof)
 
     Mat _rawimg(2, _size, CV_32S, _canvas);
     _rawimg = _rawimg.inv();
-
-    if (_scan_prof == walabot::SCAN_HORIZONTAL)
-        _rawimg = _sum_horizontal(_rawimg, _size_x, _size_y, _size_z);
-    else
-        _rawimg = _sum_perpendicular(_rawimg, _size_x, _size_y, _size_z);
+    if (_scan_prof == walabot::SCAN_HORIZONTAL) _rawimg = _sum_horizontal(_rawimg, _size_x, _size_y, _size_z);
+    else _rawimg = _sum_perpendicular(_rawimg, _size_x, _size_y, _size_z);
 }
 
 Mat * walabot::scan(const SCAN_PROF scan_prof)
 {
     WALABOT_RESULT _status;
-    int _size_x;
-    int _size_y;
-    int _size_z;
-    int * _canvas;
-    double _energy;
+    int _size_x; int _size_y; int _size_z;
+    int * _canvas; double _energy;
 
     _status = Walabot_Trigger();
     _check_status(_status);
@@ -205,7 +199,6 @@ Mat * walabot::scan(const SCAN_PROF scan_prof)
 
     Mat _rawimg(2, _size, CV_32S, _canvas);
     _rawimg = _rawimg.inv();
-
     Mat * _img_hori = new Mat(_sum_horizontal(_rawimg, _size_x, _size_y, _size_z));
     Mat * _img_perp = new Mat(_sum_perpendicular(_rawimg, _size_x, _size_y, _size_z));
 }
@@ -221,8 +214,7 @@ void walabot::_check_status(WALABOT_RESULT & _status)
  * Args:
  *      _status      : running status*/
 {
-    if (_status == WALABOT_SUCCESS)
-        return;
+    if (_status == WALABOT_SUCCESS) return;
 
     const char * _error_str = Walabot_GetErrorString();
     throw *new std::runtime_error(_error_str);
@@ -239,8 +231,7 @@ int *** walabot::_get_canvas(const size_t & _x, const size_t & _y, const size_t 
     for (int _i = 0; _i < _x; ++_i)
     {
         _canvas[_i] = new int * [_y];
-        for (int _j = 0; _j < _y; ++_j)
-            _canvas[_i][_j] = new int[_z];
+        for (int _j = 0; _j < _y; ++_j) _canvas[_i][_j] = new int[_z];
     }
     return _canvas;
 }
@@ -253,8 +244,7 @@ void walabot::_delete_canvas(int *** _canvas, const size_t & _x, const size_t & 
 {
     for (int _i = 0; _i < _x; ++_i)
     {
-        for (int _j = 0; _j < _x; ++_j)
-            delete[] _canvas[_i][_j];
+        for (int _j = 0; _j < _x; ++_j) delete[] _canvas[_i][_j];
         delete[] _canvas[_i];
     }
     delete[] _canvas;
@@ -265,10 +255,8 @@ Mat & walabot::_sum_horizontal(const Mat & _img, const size_t & _x, const size_t
     Mat * _sumimg = new Mat(Mat::zeros(_z, _y, CV_32S));
 
     for (int _k = 0; _k < _x; ++_k) {
-        for (int _i = 0; _i < _z; ++_i) {
-            for (int _j = 0; _j < _y; ++_j)
-                _sumimg->at<int>(_z - _i - 1, _j) += _img.at<int>(_k, _i * _y + _j);
-        }
+        for (int _i = 0; _i < _z; ++_i)
+            for (int _j = 0; _j < _y; ++_j) _sumimg->at<int>(_z - _i - 1, _j) += _img.at<int>(_k, _i * _y + _j);
     }
 
     return *_sumimg;
@@ -279,10 +267,8 @@ Mat & walabot::_sum_perpendicular(const Mat & _img, const size_t & _x, const siz
     Mat * _sumimg = new Mat(Mat::zeros(_z, _x, CV_32S));
 
     for (int _k = 0; _k < _y; ++_k) {
-        for (int _i = 0; _i < _z; ++_i) {
-            for (int _j = 0; _j < _x; ++_j)
-                _sumimg->at<uchar>(_z - _i - 1, _j) += _img.at<uchar>(_j, _i *_y + _k);
-        }
+        for (int _i = 0; _i < _z; ++_i)
+            for (int _j = 0; _j < _x; ++_j) _sumimg->at<uchar>(_z - _i - 1, _j) += _img.at<uchar>(_j, _i *_y + _k);
     }
 
     return *_sumimg;
