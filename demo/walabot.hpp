@@ -86,10 +86,10 @@ public:
     /* Scanning routine for walabot. The direction of projection can be determined by the parameter scan_prof.
      * These routines stores collected data in cv::Mat. */
     Mat & get_frame(SCAN_PROF scan_prof);                                                           // Get single frame
-    void scan(const char * _save_dir, const int _span);                                             // Get projections over both planes
+    void scan(const char * _save_dir, const int _frames);                                           // Get projections over both planes
 
     /* Private test routines. Provide visual outputs of scanning profiles*/
-    void _scan_test(SCAN_PROF scan_prof);                                                           // Scan test
+    void _scan_test();                                                                              // Scan test
     void _check_status(WALABOT_RESULT & _status);                                                   // Check running status of walabot
     int *** _get_canvas(const size_t & _x, const size_t & _y, const size_t & _z);                   // Get blank canvas
     void _delete_canvas(int *** _canvas, const size_t & _x, const size_t & _y);                     // Free memory of canvas

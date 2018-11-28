@@ -77,7 +77,7 @@ void walabot::start()
     _status = Walabot_Start();                                                                      // Walabot start up
     _check_status(_status);
 
-    _status = Walabot_StartCalibration();                                                           // Calibration
+    _status = Walabot_StartCalibration();
     _check_status(_status);
 }
 
@@ -184,30 +184,53 @@ Mat & walabot::get_frame(const SCAN_PROF _scan_prof)
     return _rawimg;
 }
 
-void walabot::scan(const char * _save_dir, const int _span)
+void walabot::scan(const char * _save_dir, const int _frame)
+{
+    WALABOT_RESULT _status;
+    int _size_x; int _size_y; int _size_z; double _energy;
+    const int _dir_len = strlen(_save_dir);
+    int ** _canvas = new int*[_frame];
+    clock_t _clock_list[_frame];
+    auto _sig_file = new char[_dir_len + CLOCK_T_DECBITS + 1];
+    clock_t _time = clock();
+
+    for (int _count = 0; _count < _frame; ++_count)
+    {
+        _status = Walabot_Trigger(); _check_status(_status);
+        _status = Walabot_GetRawImage(&_canvas[_count], &_size_x, &_size_y, &_size_z, &_energy); _check_status(_status);
+        _time = clock(); _clock_list[_count] = _time;
+    }
+
+    for (int _count = 0; _count < _frame; ++_count)
+    {
+        int _sz[] = {_size_x, _size_y, _size_z};
+        sprintf(_sig_file, "%s%10ld", _save_dir, _clock_list[_count]);
+        _signal_write(_sig_file, _canvas[_count], _sz);
+    }
+}
+
+void walabot::_scan_test()
 {
     WALABOT_RESULT _status;
     int _size_x; int _size_y; int _size_z;
     int * _canvas; double _energy;
-    const int _dir_len = strlen(_save_dir);
     clock_t _start = clock(), _time = clock();
-    auto _sig_file = new char[_dir_len + CLOCK_T_DECBITS + 1];
 
-    while (_time - _start < _span) {
-        _status = Walabot_Trigger(); _check_status(_status);
-        _status = Walabot_GetRawImage(&_canvas, &_size_x, &_size_y, &_size_z, &_energy); _check_status(_status);
+    while(1) {
+        _status = Walabot_Trigger();
+        _check_status(_status);
+        _status = Walabot_GetRawImage(&_canvas, &_size_x, &_size_y, &_size_z, &_energy);
+        _check_status(_status);
+        Mat _rawimg(_size_y*_size_z, _size_x, CV_32S, _canvas);
+        std::cout << _rawimg << std::endl;
         int _sz[] = {_size_x, _size_y, _size_z};
-
-        clock_t _time = clock();
-        sprintf(_sig_file, "%s%10ld", _save_dir, _time);
-        _signal_write(_sig_file, _canvas, _sz);
-        delete[]_canvas;
+        std::cout << _energy << std::endl;
     }
-}
-
-void walabot::_scan_test(const SCAN_PROF scan_prof)
-{
-
+    //Mat _rawimg(_size_y*_size_z, _size_x, CV_32S, _canvas);
+    //std::cout << _rawimg << std::endl;
+    //std::cout << _rawimg.type() << std::endl;
+    //_rawimg = _rawimg.inv();
+    //std::cout << _rawimg << std::endl;
 }
 
 void walabot::_check_status(WALABOT_RESULT & _status)

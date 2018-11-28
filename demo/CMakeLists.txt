@@ -4,7 +4,7 @@ project(demo)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 
-set(OpenCV_DIR "C:\\opencv\\opencv\\mingw64_build\\install")
+set(OpenCV_DIR "D:\\opencv\\mingw64_build\\install")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})

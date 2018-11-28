@@ -11,8 +11,7 @@ using namespace cv;
 
 int main()
 {
-    clock_t t = clock();
-    char * _time = new char[11];
-    sprintf(_time, "%010d", t);
-    std::cout << _time << "  " << t << "  " << CLOCKS_PER_SEC << std::endl;
+    walabot test(10, 600, 10, -60, 60, 10, -30, 30, 10, true, 15);
+    test.start();
+    test.scan("D:\\Scan test\\", 100);
 }
