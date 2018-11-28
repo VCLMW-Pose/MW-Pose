@@ -36,6 +36,7 @@ class walabot
     const SCAN_PROF SCAN_PERPENDICULAR = 1;                                                        // Project energies to perpendicular plane
     const FILTER NO_APPLYING_MTI = false;                                                          // MTI filter constant
     const FILTER ACTIVATE_MTI = true;                                                              // MTI filter constant
+    const int CLOCK_T_DECBITS = 10;
 
 private:
     /* Basic coefficient of walabot scanning profile.*/
@@ -85,7 +86,7 @@ public:
     /* Scanning routine for walabot. The direction of projection can be determined by the parameter scan_prof.
      * These routines stores collected data in cv::Mat. */
     Mat & get_frame(SCAN_PROF scan_prof);                                                           // Get single frame
-    Mat * scan(SCAN_PROF scan_prof);                                                                // Get projections over both planes
+    void scan(const char * _save_dir, const int _span);                                             // Get projections over both planes
 
     /* Private test routines. Provide visual outputs of scanning profiles*/
     void _scan_test(SCAN_PROF scan_prof);                                                           // Scan test
@@ -96,6 +97,9 @@ public:
                                                                                                     // Projection to horizontal plane
     Mat & _sum_perpendicular(const Mat & _img, const size_t & _x, const size_t & _y, const size_t & _z);
                                                                                                     // Projection to perpendicular plane
+
+    void _signal_write(const char * _file, const int * _signal, const int * _sz);
+    Mat & _singal_read(const char * _sig_file);
 };
 
 #endif //DEMO_WALABOT_HPP

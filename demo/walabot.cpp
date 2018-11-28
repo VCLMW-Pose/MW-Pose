@@ -8,6 +8,9 @@
 
 #include "walabot.hpp"
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 walabot::walabot(DEPTH_ARENA r_min, DEPTH_ARENA r_max, DEPTH_RESOL r_res, ANGULAR_ARENA phi_min, ANGULAR_ARENA phi_max,
         ANGULAR_RESOL phi_res, ANGULAR_ARENA theta_min, ANGULAR_ARENA theta_max, ANGULAR_RESOL theta_res, FILTER filter,
@@ -113,7 +116,6 @@ void walabot::set_theta(const ANGULAR_ARENA theta_min, const ANGULAR_ARENA theta
     _theta_min = theta_min; _theta_max = theta_max; _theta_res = theta_res;
     _status = Walabot_SetArenaTheta(_theta_min, _theta_max, _theta_res);                            // Set angular arena
     _check_status(_status);
-
 }
 
 void walabot::set_r(const DEPTH_ARENA r_min, const DEPTH_ARENA r_max, const DEPTH_RESOL r_res)
@@ -167,40 +169,40 @@ void walabot::set_scan_profile(const APP_PROFILE _profile)
 Mat & walabot::get_frame(const SCAN_PROF _scan_prof)
 {
     WALABOT_RESULT _status;
-    int _size_x;
-    int _size_y;
-    int _size_z;
-    int * _canvas;
-    double _energy;
+    int _size_x; int _size_y; int _size_z;
+    int * _canvas; double _energy;
 
-    _status = Walabot_Trigger();
-    _check_status(_status);
-    _status = Walabot_GetRawImage(&_canvas, &_size_x, &_size_y, &_size_z, &_energy);
-    int _size[] = {_size_y*_size_z, _size_x};
-    _check_status(_status);
+    _status = Walabot_Trigger(); _check_status(_status);
+    _status = Walabot_GetRawImage(&_canvas, &_size_x, &_size_y, &_size_z, &_energy); _check_status(_status);
 
-    Mat _rawimg(2, _size, CV_32S, _canvas);
+    Mat _rawimg(_size_y*_size_z, _size_x, CV_32S, _canvas);
     _rawimg = _rawimg.inv();
     if (_scan_prof == walabot::SCAN_HORIZONTAL) _rawimg = _sum_horizontal(_rawimg, _size_x, _size_y, _size_z);
     else _rawimg = _sum_perpendicular(_rawimg, _size_x, _size_y, _size_z);
+    _rawimg.release();
+
+    return _rawimg;
 }
 
-Mat * walabot::scan(const SCAN_PROF scan_prof)
+void walabot::scan(const char * _save_dir, const int _span)
 {
     WALABOT_RESULT _status;
     int _size_x; int _size_y; int _size_z;
     int * _canvas; double _energy;
+    const int _dir_len = strlen(_save_dir);
+    clock_t _start = clock(), _time = clock();
+    auto _sig_file = new char[_dir_len + CLOCK_T_DECBITS + 1];
 
-    _status = Walabot_Trigger();
-    _check_status(_status);
-    _status = Walabot_GetRawImage(&_canvas, &_size_x, &_size_y, &_size_z, &_energy);
-    int _size[] = {_size_y*_size_z, _size_x};
-    _check_status(_status);
+    while (_time - _start < _span) {
+        _status = Walabot_Trigger(); _check_status(_status);
+        _status = Walabot_GetRawImage(&_canvas, &_size_x, &_size_y, &_size_z, &_energy); _check_status(_status);
+        int _sz[] = {_size_x, _size_y, _size_z};
 
-    Mat _rawimg(2, _size, CV_32S, _canvas);
-    _rawimg = _rawimg.inv();
-    Mat * _img_hori = new Mat(_sum_horizontal(_rawimg, _size_x, _size_y, _size_z));
-    Mat * _img_perp = new Mat(_sum_perpendicular(_rawimg, _size_x, _size_y, _size_z));
+        clock_t _time = clock();
+        sprintf(_sig_file, "%s%10ld", _save_dir, _time);
+        _signal_write(_sig_file, _canvas, _sz);
+        delete[]_canvas;
+    }
 }
 
 void walabot::_scan_test(const SCAN_PROF scan_prof)
@@ -234,6 +236,28 @@ int *** walabot::_get_canvas(const size_t & _x, const size_t & _y, const size_t 
         for (int _j = 0; _j < _y; ++_j) _canvas[_i][_j] = new int[_z];
     }
     return _canvas;
+}
+
+void walabot::_signal_write(const char * _file, const int * _signal, const int * _sz)
+{
+    FILE * _sig_file = fopen(_file, "wb");
+    const size_t _len = _sz[0]*_sz[1]*_sz[2];
+    fwrite(_sz, sizeof(unsigned int), 3, _sig_file);
+    fwrite(_signal, sizeof(int), _len, _sig_file);
+    fclose(_sig_file);
+}
+
+Mat & walabot::_singal_read(const char * _sig_file)
+{
+    FILE * _signal_ = fopen(_sig_file, "rb");
+    auto _sz = new unsigned int[3];
+    fread(_sz, sizeof(unsigned int), 3, _signal_);
+    auto _signal = new int[_sz[0]*_sz[1]*_sz[2]];
+    fread(_signal, sizeof(int), _sz[0]*_sz[1]*_sz[2], _signal_);
+    Mat * _raw_img = new Mat(_sz[1]*_sz[2], _sz[0], CV_32S, _signal);
+    fclose(_signal_);
+
+    return *_raw_img;
 }
 
 void walabot::_delete_canvas(int *** _canvas, const size_t & _x, const size_t & _y)
