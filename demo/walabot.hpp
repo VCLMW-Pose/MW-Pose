@@ -98,8 +98,9 @@ public:
     Mat & _sum_perpendicular(const Mat & _img, const size_t & _x, const size_t & _y, const size_t & _z);
                                                                                                     // Projection to perpendicular plane
 
-    void _signal_write(const char * _file, const int * _signal, const int * _sz);
-    Mat & _singal_read(const char * _sig_file);
+    /* Raw signal save and read routine*/
+    void _signal_write(const char * _file, const int * _signal, const int * _sz);                   // Signal write
+    Mat & _singal_read(const char * _sig_file);                                                     // Signal read
 };
 
 #endif //DEMO_WALABOT_HPP

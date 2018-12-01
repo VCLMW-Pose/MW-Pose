@@ -15,6 +15,7 @@ __all__ = ['walabot']
 import matplotlib.pyplot as plt
 import WalabotAPI
 import numpy as np
+import os
 from src.utils.imageproc import *
 from sys import platform
 from matplotlib import animation
@@ -174,6 +175,23 @@ class walabot():
         # Getting heat maps in R and theta
         heatmap, _, _, _, _ = self.walabot.GetRawImage()
 
+def read_signal_test(save_dir):
+    names = os.listdir(save_dir)
+
+    for i in range(len(names)):
+        sig_file = open(os.path.join(save_dir, names[i]), mode='rb')
+        data = np.fromfile(sig_file, dtype=np.int32)
+
+        size_x = data[0]
+        size_y = data[1]
+        size_z = data[2]
+
+        raw_img = np.array(data[3:]).reshape(size_x, size_y, size_z)
+        _perpendicular = sumup_perpendicular(np.copy(raw_img))
+        _horizontal = sumup_horizontal(np.copy(raw_img))
+
+        figure = plt.figure()
+
 if __name__ == '__main__':
     Walabot = walabot()
-    Walabot.scan_test(10, 600, 10, -20, 20, 2, -90, 90, 10, 15, "horizontal", False)
+    Walabot.scan_test(10, 600, 10, -60, 60, 10, -60, 60, 10, 15, "perpendicular", False)
