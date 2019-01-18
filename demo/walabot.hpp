@@ -87,6 +87,7 @@ public:
      * These routines stores collected data in cv::Mat. */
     Mat & get_frame(SCAN_PROF scan_prof);                                                           // Get single frame
     void scan(const char * _save_dir, const int _frames);                                           // Get projections over both planes
+    void union_scan(const char * _save_dir, const int _frame);                                      // Scan by interacting with python human detector
 
     /* Private test routines. Provide visual outputs of scanning profiles*/
     void _scan_test();                                                                              // Scan test
