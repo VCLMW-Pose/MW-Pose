@@ -192,6 +192,19 @@ def read_signal_test(save_dir):
 
         figure = plt.figure()
 
+def read_signal(save_dir):
+    sig_file = open(save_dir, mode='rb')
+    data = np.fromfile(sig_file, dtype=np.int32)
+
+    size_x = data[0]
+    size_y = data[1]
+    size_z = data[2]
+
+    raw_img = np.array(data[3:]).reshape(size_z, size_x, size_y)
+    _horizontal = sumup_perpendicular(np.copy(raw_img))
+    heatmap = plt.pcolormesh(_horizontal, cmap='jet')
+    plt.show()
+    plt.savefig("F:/capturedata/     63567.jpg")
+
 if __name__ == '__main__':
-    Walabot = walabot()
-    Walabot.scan_test(10, 600, 10, -60, 60, 10, -60, 60, 10, 15, "perpendicular", False)
+    read_signal("F:/capturedata/     63567")

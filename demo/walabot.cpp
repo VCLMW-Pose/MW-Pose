@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/timeb.h>
+#include <sys\utime.h>
 
 walabot::walabot(DEPTH_ARENA r_min, DEPTH_ARENA r_max, DEPTH_RESOL r_res, ANGULAR_ARENA phi_min, ANGULAR_ARENA phi_max,
         ANGULAR_RESOL phi_res, ANGULAR_ARENA theta_min, ANGULAR_ARENA theta_max, ANGULAR_RESOL theta_res, FILTER filter,
@@ -196,6 +198,59 @@ void walabot::scan(const char * _save_dir, const int _frame)
     {
         sprintf(_sig_file, "%s%10ld", _save_dir, _clock_list[_count]);
         _signal_write(_sig_file, _canvas[_count], _sz);
+    }
+}
+
+void walabot::union_scan(const char * _save_dir, const int _frame)
+/* Improved scan routine for walabot. It performs scanning operation of walabot and save the captured data to
+ * save directory in the form of binary. There is no transformation in this routine, and no saving operation
+ * during scanning to ensure highest rate. The number of saved files are determined by required frames. The
+ * scanning process would terminate if it has reached maximum frames. The file name of saved files are named by
+ * operation time. The scanning process proceed only when a person is detected, and a detector provides the signal
+ * through a text file.
+ * Args:
+ *      _save_dir  : saving directory
+ *      _frame     : maximum frames*/
+{
+    WALABOT_RESULT _status;
+    int _size_x; int _size_y; int _size_z; double _energy;
+    const int _dir_len = strlen(_save_dir);
+    int ** _canvas = new int*[_frame];
+    clock_t _clock_list[_frame];
+    auto _sig_file = new char[_dir_len + CLOCK_T_DECBITS + 1];                                      // Concatenate saving directory
+    auto _inter_file = new char[_dir_len + 11];                                                     // Interaction signal file
+    sprintf(_inter_file, "%s%s", _save_dir, "inter.txt");
+    clock_t _time = clock();                                                                        // Counter
+    auto signal = new char[1]; signal[0] = '0';                                                     // Signal receiver
+
+    while (1)
+    {
+        FILE * inter = fopen(_inter_file, "r");
+        fread(signal, sizeof(char), 1, inter);
+        fclose(inter);
+
+        if (signal[0] == '0') continue;
+
+        for (int _count = 0; _count < _frame; ++_count) {
+            _status = Walabot_Trigger();
+            _check_status(_status);                                        // Scanning and collect data
+            _status = Walabot_GetRawImage(&_canvas[_count], &_size_x, &_size_y, &_size_z, &_energy);
+            _check_status(_status);
+            _time = clock();
+            _clock_list[_count] = _time;
+        }
+
+        int _sz[] = {_size_x, _size_y, _size_z};
+        for (int _count = 0; _count < _frame; ++_count)                                                 // Save files
+        {
+            sprintf(_sig_file, "%s%10ld", _save_dir, _clock_list[_count]);
+            _signal_write(_sig_file, _canvas[_count], _sz);
+        }
+
+        signal[0] = 0;
+        inter = fopen(_inter_file, "w");                                                                // Send signal
+        fwrite("0", sizeof(char), 1, inter);
+        fclose(inter);
     }
 }
 
