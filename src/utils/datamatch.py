@@ -45,12 +45,16 @@ def matching(data_dir, max_err):
                     pos = 0
                     for walabot in walabots:
                         matched = ""
+                        # Name of walabot data: Universal Time displayed in millisecond
+                        # First 10 bit: second
+                        # Last 3 bit millisecond
                         sec = float(walabot[:10])
                         milsec = float(walabot[10:])
                         time = sec + milsec / 1000
                         cur_err = max_err
                         while pos < len(jpgs):
                             jpg = jpgs[pos]
+                            # Name of optical data: Universal Time displayed in second
                             _time = float(jpg[:-4])
                             if abs(time - _time) <= cur_err:
                                 cur_err = abs(time - _time)
