@@ -16,12 +16,13 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 
-def matching(data_dir, max_err):
+def matching(data_dir, max_err, rm_ori_file=False):
     """
     This function is designed to match walabot data with optical data
             having the least time delay(less than max_err).
     :param data_dir: directory of the top folder of data
     :param max_err: maximum acceptable time delay
+    :param rm_ori_file: Whether to remove the original files
     """
     matched_num = 0
     for _, dirs, _ in os.walk(data_dir, topdown=True):
@@ -65,8 +66,12 @@ def matching(data_dir, max_err):
                         if matched != "":
                             dst = _dir + '/' + walabot
                             os.mkdir(dst)
-                            shutil.copy(root + '/' + walabot, dst)
-                            shutil.copy(root + '/' + matched, dst)
+                            if rm_ori_file:
+                                shutil.move(root + '/' + walabot, dst)
+                                shutil.move(root + '/' + matched, dst)
+                            else:
+                                shutil.copy(root + '/' + walabot, dst)
+                                shutil.copy(root + '/' + matched, dst)
                             f.writelines([walabot, '\t', matched[:-4], '\t', str(cur_err)[:7], '\n'])
                             matched_num += 1
         break  # Only traverse top directory
@@ -98,13 +103,13 @@ def analysis(data_dir, max_err):
     plt.title('Time Delay Scatter', fontsize=16, loc='left', color='g')
     plt.xlim((-0.2, 1.2))
     plt.ylim((0, max_err))
-    plt.ylabel('Difference (ms)', fontsize=10, color='b')
-    plt.scatter(x, delays, c='b')
+    plt.ylabel('Difference (s)', fontsize=10, color='b')
+    plt.scatter(x, delays, c='b', s=10)
     plt.savefig(data_dir + "/Scatter.png")
     plt.show()
 
 
 if __name__ == "__main__":
-    matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
+    matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01, False)
     analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
     print("Completed!")
