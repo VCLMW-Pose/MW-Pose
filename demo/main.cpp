@@ -18,5 +18,5 @@ int main()
 
     walabot test(10, 600, 10, -60, 60, 10, -60, 60, 10, true, 15);
     test.start();
-    test.union_scan("F:\\capturedata\\", 20);
+    test.union_scan("F:\\capturedata\\", 100);
 }

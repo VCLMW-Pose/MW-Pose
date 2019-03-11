@@ -216,11 +216,11 @@ void walabot::union_scan(const char * _save_dir, const int _frame)
     int _size_x; int _size_y; int _size_z; double _energy;
     const int _dir_len = strlen(_save_dir);
     int ** _canvas = new int*[_frame];
-    clock_t _clock_list[_frame];
+    timeb _clock_list[_frame];
     auto _sig_file = new char[_dir_len + CLOCK_T_DECBITS + 1];                                      // Concatenate saving directory
     auto _inter_file = new char[_dir_len + 11];                                                     // Interaction signal file
     sprintf(_inter_file, "%s%s", _save_dir, "inter.txt");
-    clock_t _time = clock();                                                                        // Counter
+    timeb _time;                                                           // Counter
     auto signal = new char[1]; signal[0] = '0';                                                     // Signal receiver
 
     while (1)
@@ -236,14 +236,14 @@ void walabot::union_scan(const char * _save_dir, const int _frame)
             _check_status(_status);                                        // Scanning and collect data
             _status = Walabot_GetRawImage(&_canvas[_count], &_size_x, &_size_y, &_size_z, &_energy);
             _check_status(_status);
-            _time = clock();
+            ftime(& _time);
             _clock_list[_count] = _time;
         }
 
         int _sz[] = {_size_x, _size_y, _size_z};
         for (int _count = 0; _count < _frame; ++_count)                                                 // Save files
-        {
-            sprintf(_sig_file, "%s%10ld", _save_dir, _clock_list[_count]);
+            {
+            sprintf(_sig_file, "%s%d%03d", _save_dir, _clock_list[_count].time, _clock_list[_count].millitm);
             _signal_write(_sig_file, _canvas[_count], _sz);
         }
 

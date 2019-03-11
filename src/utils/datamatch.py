@@ -110,6 +110,6 @@ def analysis(data_dir, max_err):
 
 
 if __name__ == "__main__":
-    matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01, False)
-    analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
+    matching("F:/dataset", 0.01, False)
+    analysis("F:/dataset", 0.01)
     print("Completed!")

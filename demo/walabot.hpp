@@ -36,7 +36,7 @@ class walabot
     const SCAN_PROF SCAN_PERPENDICULAR = 1;                                                        // Project energies to perpendicular plane
     const FILTER NO_APPLYING_MTI = false;                                                          // MTI filter constant
     const FILTER ACTIVATE_MTI = true;                                                              // MTI filter constant
-    const int CLOCK_T_DECBITS = 10;
+    const int CLOCK_T_DECBITS = 100;
 
 private:
     /* Basic coefficient of walabot scanning profile.*/
