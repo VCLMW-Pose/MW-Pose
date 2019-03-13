@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Mon Mar 4 16:16 2019
+    Last edit date   : Mon Mar 13 23:55 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -24,10 +24,11 @@ def matching(data_dir, max_err, rm_ori_file=False):
     :param max_err: maximum acceptable time delay
     :param rm_ori_file: Whether to remove the original files
     """
-    matched_num = 0
+    tt_matched_num = 0  # Number of data files matched in all the folders
     for _, dirs, _ in os.walk(data_dir, topdown=True):
         with open(data_dir + "/time_info.txt", 'a') as f:
             for dir in dirs:
+                matched_num = 0  # Number of data files matched in each folder
                 if dir[0] == '_' or os.path.exists(data_dir + "/_" + dir):
                     continue
                 _dir = data_dir + "/_" + dir  # Target folder
@@ -74,8 +75,10 @@ def matching(data_dir, max_err, rm_ori_file=False):
                                 shutil.copy(root + '/' + matched, dst)
                             f.writelines([walabot, '\t', matched[:-4], '\t', str(cur_err)[:7], '\n'])
                             matched_num += 1
+                            tt_matched_num += 1
+                print("%d data has been matched in %s." % (matched_num, dir))
         break  # Only traverse top directory
-    print("%d data has been matched." % (matched_num))
+    print("%d data has been matched totally." % (tt_matched_num))
 
 
 def analysis(data_dir, max_err):
