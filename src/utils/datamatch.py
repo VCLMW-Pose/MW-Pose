@@ -78,7 +78,7 @@ def matching(data_dir, max_err, rm_ori_file=False):
                             tt_matched_num += 1
                 print("%d data has been matched in %s." % (matched_num, dir))
         break  # Only traverse top directory
-    print("%d data has been matched totally." % (tt_matched_num))
+    print("%d data has been matched totally." % tt_matched_num)
 
 
 def analysis(data_dir, max_err):
