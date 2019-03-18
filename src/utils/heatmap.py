@@ -33,6 +33,7 @@
 import os
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 
 __all__ = ['putGaussianMap']
 
@@ -100,6 +101,9 @@ def putGaussianMap(coord, accumulateHeatmap, sigma, imgSize):
     accumulateHeatmap[accumulateHeatmap > 1.0] = 1.0
     return accumulateHeatmap
 
+#
+# @brief: Generate 14 heatmaps, in which 14 kinds of key points are annotated
+# in the form of 2D gaussian maps.
 def generateHeatMap(annotation, sigma, imgSize):
     accumulateHeatmap = np.zeros((imgSize[0], imgSize[1], 14))
 
@@ -109,3 +113,13 @@ def generateHeatMap(annotation, sigma, imgSize):
             heatMap = putGaussianMap(coord, heatMap, sigma, imgSize)
         accumulateHeatmap[:, :, i] = heatMap
     return accumulateHeatmap
+
+# @brief: Display heatmap and help visualize heatmaps coloured in jet
+def displayHeatMap(heatMap):
+    Figure = plt.figure()
+    newLayout = Figure.add_subplot(111)
+    colouredHeatMap = newLayout.pcolormesh(heatMap, cmap="jet")
+    Figure.colorbar(colouredHeatMap)
+
+    Figure.show()
+
