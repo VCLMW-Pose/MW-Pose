@@ -123,3 +123,4 @@ def displayHeatMap(heatMap):
 
     Figure.show()
 
+#def displayHeatMapWeighted(heatMap, image):
