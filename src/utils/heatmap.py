@@ -81,8 +81,31 @@ def readAnnotation(annoDirctory):
     return annotation
 
 #
-# @brief: Generate 2D gaussian heatmap as ground truth for key points detection.
-# It produces as many heatmaps as the number of classes of key points.
-def putGaussianMap(annotation):
-    heatmap = []
-    return heatmap
+# @brief: Generate a new 2D gaussian heatmap whose center is the input
+# parameter coord, and add up new heatmap and accumulated heatmap. Distribution
+# coefficient \sigma of the gaussian map and the dimensions of heatmap are
+# set through input parameter sigma and imgSize.
+def putGaussianMap(coord, accumulateHeatmap, sigma, imgSize):
+    xRange, yRange = imgSize[0], imgSize[1]
+    xGrid = [i for i in range(xRange)]
+    yGrid = [i for i in range(yRange)]
+    xx, yy = np.meshgrid(xGrid, yGrid)
+
+    heatMap = (xx - coord[0])**2 + (yy - coord[1])**2
+    exponent = heatMap/(2.0*sigma**2)
+    mask = exponent <= 4.6052
+    heatMap = np.exp(-exponent)
+    heatMap = np.multiply(mask, heatMap)
+    accumulateHeatmap += heatMap
+    accumulateHeatmap[accumulateHeatmap > 1.0] = 1.0
+    return accumulateHeatmap
+
+def generateHeatMap(annotation, sigma, imgSize):
+    accumulateHeatmap = np.zeros((imgSize[0], imgSize[1], 14))
+
+    for i in range(14):
+        heatMap = accumulateHeatmap[:, :, i]
+        for coord in annotation[keyPointList[i]]:
+            heatMap = putGaussianMap(coord, heatMap, sigma, imgSize)
+        accumulateHeatmap[:, :, i] = heatMap
+    return accumulateHeatmap
