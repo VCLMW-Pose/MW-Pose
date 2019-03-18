@@ -29,6 +29,3 @@ def initialize_weight(net):
         elif isinstance(m, nn.Linear):
             m.weight.data.normal_(0, 0.02)
             m.bias.data.zero_()
-
-
-
