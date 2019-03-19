@@ -40,22 +40,24 @@ __all__ = ['putGaussianMap']
 keyPointList = ["head", "neck", "lshoulder", "rshoulder", "lelbow", "relbow",
                 "lhand", "rhand", "lhip", "rhip", "lknee", "rknee", "lankle", "rankle"]
 
-# Specification of annotation files:
-# [file name] [total number of people] [person id] [coordinates of joints]
-#
-# @brief: Every single row of annotation depicts the coordinates of key
-# points of an individual within in the image named 'file name'. 'total number
-# of people' denotes the number of people can be detected in corresponding
-# image, each of them is given an id number to distinguish different individuals.
-#
-# @example:
-#  [1551760709.9952404.jpg] [2] [1] [head: 100, 100] [neck: 100, 100] [ankle: 100, 100]...
-#  [1551760709.9952404.jpg] [2] [2] [head: 200, 100] [neck: 200, 100] [ankle: 200, 100]...
-#
-# @order of key points: 1. head, 2. neck, 3. left shoulder, 4. right shoulder,
-# 5. left elbow, 6. right elbow, 7. left hand, 8. right hand, 9. left hip,
-# 10. right hip, 11. left knee, 12. right knee, 13. left ankle, 14. right ankle.
 def readAnnotation(annoDirctory):
+    """
+     Specification of annotation files:
+     [file name] [total number of people] [person id] [coordinates of joints]
+
+     @brief: Every single row of annotation depicts the coordinates of key
+     points of an individual within in the image named 'file name'. 'total number
+     of people' denotes the number of people can be detected in corresponding
+     image, each of them is given an id number to distinguish different individuals.
+
+     @example:
+      [1551760709.9952404.jpg] [2] [1] [head: 100, 100] [neck: 100, 100] [ankle: 100, 100]...
+      [1551760709.9952404.jpg] [2] [2] [head: 200, 100] [neck: 200, 100] [ankle: 200, 100]...
+
+     @order of key points: 1. head, 2. neck, 3. left shoulder, 4. right shoulder,
+     5. left elbow, 6. right elbow, 7. left hand, 8. right hand, 9. left hip,
+     10. right hip, 11. left knee, 12. right knee, 13. left ankle, 14. right ankle.
+    """
     file = open(annoDirctory, 'r')
     annotation = []
     content = file.readlines()

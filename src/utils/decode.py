@@ -82,20 +82,20 @@ def compute_resized_coords(coords, resizeFactor):
 
 def nonMaximumSuppression(param, heatmaps, upsampFactor=1., bool_refine_center=True, bool_gaussian_filt=False):
     """
-        NonMaximaSuppression: find peaks (local maxima) in a set of grayscale images
-        :param heatmaps: set of grayscale images on which to find local maxima (3d np.array,
-        with dimensions image_height x image_width x num_heatmaps)
-        :param upsampFactor: Size ratio between CPM heatmap output and the input image size.
-        Eg: upsampFactor=16 if original image was 480x640 and heatmaps are 30x40xN
-        :param bool_refine_center: Flag indicating whether:
-         - False: Simply return the low-res peak found upscaled by upsampFactor (subject to grid-snap)
-         - True: (Recommended, very accurate) Upsample a small patch around each low-res peak and
-         fine-tune the location of the peak at the resolution of the original input image
-        :param bool_gaussian_filt: Flag indicating whether to apply a 1d-GaussianFilter (smoothing)
-        to each upsampled patch before fine-tuning the location of each peak.
-        :return: a NUM_JOINTS x 4 np.array where each row represents a joint type (0=nose, 1=neck...)
-        and the columns indicate the {x,y} position, the score (probability) and a unique id (counter)
-        """
+    NonMaximaSuppression: find peaks (local maxima) in a set of grayscale images
+    :param heatmaps: set of grayscale images on which to find local maxima (3d np.array,
+    with dimensions image_height x image_width x num_heatmaps)
+    :param upsampFactor: Size ratio between CPM heatmap output and the input image size.
+    Eg: upsampFactor=16 if original image was 480x640 and heatmaps are 30x40xN
+    :param bool_refine_center: Flag indicating whether:
+     - False: Simply return the low-res peak found upscaled by upsampFactor (subject to grid-snap)
+     - True: (Recommended, very accurate) Upsample a small patch around each low-res peak and
+     fine-tune the location of the peak at the resolution of the original input image
+    :param bool_gaussian_filt: Flag indicating whether to apply a 1d-GaussianFilter (smoothing)
+    to each upsampled patch before fine-tuning the location of each peak.
+    :return: a NUM_JOINTS x 4 np.array where each row represents a joint type (0=nose, 1=neck...)
+    and the columns indicate the {x,y} position, the score (probability) and a unique id (counter)
+    """
     # MODIFIED BY CARLOS: Instead of upsampling the heatmaps to heatmap_avg and
     # then performing NMS to find peaks, this step can be sped up by ~25-50x by:
     # (9-10ms [with GaussFilt] or 5-6ms [without GaussFilt] vs 250-280ms on RoG
