@@ -38,6 +38,83 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 
+def saveWeight(model, filePointer):
+    '''
+    Save weight of a model to a binary file. This is a cross-framework neural
+    network weight saving technique, which enables identical models deployed by
+    other deep learning framework to load the pre-trained coefficient from
+    any other frameworks. The sequence of saving and loading is strictly
+    defined to eliminate possible confusion of saving order, which can refer to
+    the given statements.
+    This routine is designed for encapsulated network blocks, in which there is
+    only convolution layers and batch normalization layers that is with weights.
+    E.g. Models with linear layer or de-convolution layer require further
+    modification of this routine.
+    :param model: model to be saved
+    :param filePointer: The file pointer of saving directory
+    '''
+    # Traverse every layer of input model
+    for layer in model.modules():
+        # Only deconvolutional layers, linear layers and batch normalization
+        # layers need to save weights
+        if isinstance(layer, nn.Conv2d):
+            layer.bias.data.cpu().numpy().tofile(filePointer)
+            layer.weight.data.cpu().numpy().tofile(filePointer)
+
+        # Save weight of batch normalization layers
+        elif isinstance(layer, nn.BatchNorm2d):
+            layer.bias.data.cpu().numpy().tofile(filePointer)
+            layer.weight.data.cpu().numpy().tofile(filePointer)
+            layer.running_mean.data.cpu().numpy().tofile(filePointer)
+            layer.running_var.data.cpu().numpy().tofile(filePointer)
+
+def loadWeight(model, weights, ptr):
+    '''
+    Brief introduction of routine loadWeight() can refer to saveWeight(). Their
+    applicable situations are identical.
+    :param model: target model to be loaded
+    :param weights: numpy array, and the data type is float32, which is the
+    value of weights read from saving directory.
+    :param ptr: current reading position. E.g. ptr is initialized with a, if
+    a nn.Conv2d layer has 2000 parameters then the ptr is assigned with a + 2000
+    after the weights is loaded.
+    '''
+    # Traverse every layer of input model
+    for layer in model.modules():
+        # Load weights for convolutional and batch normalization layers
+        if isinstance(layer, nn.ConvTranspose2d):
+            numBias = layer.bias.numel()
+            bias = torch.from_numpy(weights[ptr:ptr + numBias]).view_as(layer.bias)
+            layer.bias.data.copy_(bias)
+            ptr += numBias
+
+            numWeight = layer.weight.numel()
+            weight = torch.from_numpy(weights[ptr:ptr + numWeight]).view_as(layer.weight)
+            layer.weight.data.copy_(weight)
+            ptr += numWeight
+
+        # The number of coefficient of weights and bias of batch normalization
+        # layers is identical
+        elif isinstance(layer, nn.BatchNorm2d):
+            numBias = layer.bias.numel()
+            bias = torch.from_numpy(weights[ptr:ptr + numBias]).view_as(layer.bias)
+            layer.bias.data.copy_(bias)
+            ptr += numBias
+
+            weight = torch.from_numpy(weights[ptr:ptr + numBias]).view_as(layer.weight)
+            layer.weight.data.copy_(weight)
+            ptr += numBias
+
+            runMean = torch.from_numpy(weights[ptr:ptr + numBias]).view_as(layer.running_mean)
+            layer.running_mean.data.copy_(runMean)
+            ptr += numBias
+
+            runVariance = torch.from_numpy(weights[ptr:ptr + numBias]).view_as(layer.running_var)
+            layer.running_var.data.copy_(runVariance)
+            ptr += numBias
+
+    return ptr
+
 class bottleNeck(nn.Module):
     def __init__(self, inChannel, outChannel, stride = 1, leaky = False):
         super(bottleNeck, self).__init__()
@@ -74,9 +151,6 @@ class bottleNeck(nn.Module):
 
         return out
 
-    def saveWeight(self, filePointer):
-    def loadWeight(self, weights, ptr):
-
 class downSample2d(nn.Module):
     def __init__(self, inChannel, outChannel, stride = 2, leaky = False):
         super(downSample2d, self).__init__()
@@ -100,7 +174,22 @@ class upSample2d(nn.Module):
         super(upSample2d, self).__init__()
 
 class denseSequentialNet(nn.Module):
-    def __init__(self, leaky=False, rnnType="GRU"):
+    '''
+    Densely connected sequential processing network is a feature extraction
+    and prediction model with sequential input process capability. The basic
+    block of DeSeqNet includes two encoders---encoderX and encoderY, one for
+    the perpendicular energy projection another for the horizontal energy
+    projection; one\several sequential processing layer---GRU, LSTM or QRNN
+    whose input is the characteristic vectors extracted with encoders.
+    Sequential process capability grant the model robustness to the missing
+    of energy reflection from certain limbs and guarantee refined outputs;
+    One decoder, which generate prediction confidence maps of keypoints.
+
+    Further concatenation of the basic DeSeqNet model, more or less improve its
+    accuracy with significantly increased computation. We select one of
+    ReLU or LeakyReLU as activation function through the model.
+    '''
+    def __init__(self, leaky=False, rnnType="GRU", concatenateNum=0):
         super(denseSequentialNet, self).__init__()
 
         # Build up two channels of encoder for the horizontal projection and
@@ -142,8 +231,9 @@ class denseSequentialNet(nn.Module):
 
         return nn.ModuleList(layer)
 
-    def buildRNN(self):
-    def buildDecoder(self):
+    #def buildRNN(self):
+    #def buildDecoder(self):
 
-    def saveWeight(self, saveDirectory):
-    def loadWeight(self, saveDirectory):
+    #def saveWeight(self, saveDirectory):
+    #def loadWeight(self, saveDirectory):
+    #def concatenateModel(self):
