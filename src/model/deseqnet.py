@@ -69,9 +69,9 @@ class bottleNeck(nn.Module):
         out = self.relu(out)
         return out
 
-class downSample(nn.Module):
+class downSample2d(nn.Module):
     def __init__(self, inChannel, outChannel, stride = 2, leaky = False):
-        super(downSample, self).__init__()
+        super(downSample2d, self).__init__()
         self.conv = nn.Conv2d(inChannel, outChannel, kernel_size=3, stride=stride, padding=1)
         self.bn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
         if leaky:
@@ -85,6 +85,10 @@ class downSample(nn.Module):
         out = self.bn(out)
         out = self.relu(out)
         return out
+
+class upSample2d(nn.Module):
+    def __init__(self):
+        super(upSample2d, self).__init__()
 
 class denseSequentialNet(nn.Module):
     def __init__(self):
