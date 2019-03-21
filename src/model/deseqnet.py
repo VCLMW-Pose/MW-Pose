@@ -39,19 +39,21 @@ import torch.utils.data
 from torch.autograd import Variable
 
 class bottleNeck(nn.Module):
-    def __init__(self, inChannel, procChannel, stride = 1, leaky = False):
+    def __init__(self, inChannel, outChannel, stride = 1, leaky = False):
         super(bottleNeck, self).__init__()
-        self.conv1 = nn.Conv2d(inChannel, procChannel, kernel_size=1, stride=stride, padding=1)
-        self.bn1 = nn.BatchNorm2d(procChannel, eps=0.001, momentum=0.01)
-        self.conv2 = nn.Conv2d(procChannel, procChannel, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(procChannel, eps=0.001, momentum=0.01)
-        self.conv3 = nn.Conv2d(procChannel, procChannel*4, kernel_size=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(procChannel*4, eps=0.001, momentum=0.01)
+        self.conv1 = nn.Conv2d(inChannel, outChannel//2, kernel_size=1, stride=stride, padding=0)
+        self.bn1 = nn.BatchNorm2d(outChannel//2, eps=0.001, momentum=0.01)
+        self.conv2 = nn.Conv2d(outChannel//2, outChannel//2, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(outChannel//2, eps=0.001, momentum=0.01)
+        self.conv3 = nn.Conv2d(outChannel//2, outChannel, kernel_size=1, padding=0)
+        self.bn3 = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
 
         if leaky:
             self.relu = nn.LeakyReLU(inplace=True)
         else:
             self.relu = nn.ReLU(inplace=True)
+        self.skipConv = nn.Conv2d(inChannel, outChannel, kernel_size=1, padding=0)
+        self.skipBn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
         self.stride = stride
 
     def forward(self, x):
@@ -65,15 +67,22 @@ class bottleNeck(nn.Module):
         out = self.relu(out)
         out = self.conv3(out)
         out = self.bn3(out)
+
+        residual = self.skipConv(residual)
+        residual = self.skipBn(residual)
         out += residual
-        out = self.relu(out)
+
         return out
+
+    def saveWeight(self, filePointer):
+    def loadWeight(self, weights, ptr):
 
 class downSample2d(nn.Module):
     def __init__(self, inChannel, outChannel, stride = 2, leaky = False):
         super(downSample2d, self).__init__()
         self.conv = nn.Conv2d(inChannel, outChannel, kernel_size=3, stride=stride, padding=1)
         self.bn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
+
         if leaky:
             self.relu = nn.LeakyReLU(inplace=True)
         else:
@@ -91,7 +100,50 @@ class upSample2d(nn.Module):
         super(upSample2d, self).__init__()
 
 class denseSequentialNet(nn.Module):
-    def __init__(self):
+    def __init__(self, leaky=False, rnnType="GRU"):
         super(denseSequentialNet, self).__init__()
+
+        # Build up two channels of encoder for the horizontal projection and
+        # the perpendicular projection of RF signal energies.
+        self.encoderX = self.buildEncoder()
+        self.encoderY = self.buildEncoder()
+
+        # Sequential processing layers, GRU, LSTM or QRNN, decided by input
+        # parameter rnnType
+
+        # Decoder receives a set of aligned characteristic vectors to predict
+        # confidence map of spatial location of key points.
+        self.leaky = leaky
+        self.rnnType = rnnType
     def forward(self, x):
         return x
+
+    def buildEncoder(self):
+        layer = []
+
+        # initial feature extraction layers
+        layer.append(nn.BatchNorm2d(1, eps=0.001, momentum=0.01))
+        layer.append(nn.Conv2d(1, 32, kernel_size=1, stride=1, padding=0))
+        if self.leaky:
+            layer.append(nn.LeakyReLU(inplace=True))
+        else:
+            layer.append(nn.ReLU(inplace=True))
+
+        # first two bottleneck blocks
+        layer.append(bottleNeck(32, 64, 1, self.leaky))
+        layer.append(bottleNeck(64, 32, 1, self.leaky))
+
+        # The 13x60 input go through 2 downsample layers and reach the dimension
+        # of 2x8. Then align the tenser elements and get a characteristic vector.
+        for i in range(2):
+            layer.append(downSample2d(32*i, 64*i, self.leaky))
+            layer.append(bottleNeck(64*i, 128*i, self.leaky))
+            layer.append(bottleNeck(128*i, 64*i, self.leaky))
+
+        return nn.ModuleList(layer)
+
+    def buildRNN(self):
+    def buildDecoder(self):
+
+    def saveWeight(self, saveDirectory):
+    def loadWeight(self, saveDirectory):
