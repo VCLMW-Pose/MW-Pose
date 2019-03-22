@@ -226,36 +226,103 @@ class denseSequentialNet(nn.Module):
 
         self.leaky = leaky
         self.rnnType = rnnType
+        self.concatenateNum = concatenateNum
 
     def forward(self, x):
-        #X = self.encoderX(x[:, :, 0])
-        #y = self.encoderY(x[:, :, 1])
+        '''
+        Forward propagation of DeSeqNet includes a series of shortcut channels.
+        For each encoder, there are shortcut channels in each down
+        :param x:
+        '''
+        horiProj = x[:, :, 0]
+        perpProj = x[:, :, 1]
 
-        #characVector =
-        #characVector = self.rnns(characVector)
+        # Forward propagation of encoderX
+        outx = self.encoderX[0](horiProj)
+        for i in range(4): outx = self.encoderX[i](outx)
+
+        # Downsample layers
+        for i in range(3):
+            outx = self.encoderX[2 + 3*i](outx)
+            # Copy tensor in skip channel
+            route = outx
+
+            outx = self.encoderX[3 + 3*i](outx)
+            outx = self.encoderX[4 + 3*i](outx)
+            outx = torch.cat((outx, route), 2)
+
+        outx = self.encoderX[14](outx)
+        outx = self.encoderX[15](outx)
+        outx = self.encoderX[16](outx)
+        outx = outx.view(-1, 1)
+
+        # Forward propagation of encoderY
+        outy = self.encoderY[0](perpProj)
+        for i in range(4): outy = self.encoderY[i](outy)
+
+        # Downsample layers
+        for i in range(3):
+            outy = self.encoderY[2 + 3 * i](outy)
+            route = outy
+
+            outy = self.encoderY[3 + 3 * i](outy)
+            outy = self.encoderY[4 + 3 * i](outy)
+            outy = torch.cat((outy, route), 2)
+
+        outy = self.encoderY[14](outy)
+        outy = self.encoderY[15](outy)
+        outy = self.encoderY[16](outy)
+        outy = outy.view(-1, 1)
+
+        # Concatenate characteristic vectors get by encoderX and encoderY
+        # as the input vector to RNNs
+        characVec = torch.cat((outx, outy), 0)
+        for rnn in self.rnns:
+            characVec = rnn(characVec)
+
+        # Decoder propagation pipeline
+        out = self.decoder[0](characVec)
+        out = self.decoder[1](out)
+        out = self.decoder[2](out)
+
+        # Upsample layers
+        for i in range(3):
+            route = out
+            out = self.decoder[3*i](out)
+            out = self.decoder[3*i + 1](out)
+
+            out = torch.cat((out, route), 2)
+            out = self.decoder[3*i + 2](out)
+
+        for i in range(12, 16): out = self.decoder[i](out)
         return x
 
     def buildEncoder(self):
         layer = []
 
         # initial feature extraction layers
+        layer.append(nn.Conv2d(1, 16, kernel_size=1, stride=1, padding=0))
         layer.append(nn.BatchNorm2d(1, eps=0.001, momentum=0.01))
-        layer.append(nn.Conv2d(1, 32, kernel_size=1, stride=1, padding=0))
         if self.leaky:
             layer.append(nn.LeakyReLU(inplace=True))
         else:
             layer.append(nn.ReLU(inplace=True))
 
         # first two bottleneck blocks
-        layer.append(bottleNeck(32, 64, 1, self.leaky))
-        layer.append(bottleNeck(64, 32, 1, self.leaky))
+        layer.append(bottleNeck(16, 32, 1, self.leaky))
+        layer.append(bottleNeck(32, 16, 1, self.leaky))
 
         # The 13x60 input go through 2 downsample layers and reach the dimension
         # of 2x8. Then align the tenser elements and get a characteristic vector.
         for i in range(2):
-            layer.append(downSample2d(32*i, 64*i, self.leaky))
-            layer.append(bottleNeck(64*i, 128*i, self.leaky))
-            layer.append(bottleNeck(128*i, 64*i, self.leaky))
+            layer.append(downSample2d(16*2**(i - 1), 32*2**(i - 1), self.leaky))
+            layer.append(bottleNeck(32*2**(i - 1), 64*2**(i - 1), self.leaky))
+            layer.append(bottleNeck(64*2**(i - 1), 32*2**(i - 1), self.leaky))
+
+        for i in range(2):
+            layer.append(downSample2d(128, 128, self.leaky))
+            layer.append(bottleNeck(128, 256, self.leaky))
+            layer.append(bottleNeck(256, 128, self.leaky))
 
         return nn.ModuleList(layer)
 
@@ -263,20 +330,26 @@ class denseSequentialNet(nn.Module):
         # Decoder/generator model of keypoint confidence map
         layer = []
 
+        # First two upsample layers
+        for i in range(2):
+            layer.append(bottleNeck(128, 256, self.leaky))
+            layer.append(bottleNeck(256, 128, self.leaky))
+            layer.append(upSample2d(128, 128, self.leaky))
+
         # Two upsample layers
         for i in range(2):
-            layer.append(bottleNeck(128/i, 256/i, self.leaky))
-            layer.append(bottleNeck(256/i, 128/i, self.leaky))
-            layer.append(upSample2d(128/i, 64/i))
+            layer.append(bottleNeck(128/(2**(i - 1)), 256/(2**(i - 1)), self.leaky))
+            layer.append(bottleNeck(256/(2**(i - 1)), 128/(2**(i - 1)), self.leaky))
+            layer.append(upSample2d(128/(2**(i - 1)), 64/(2**(i - 1)), self.leaky))
 
-        layer.append(bottleNeck(64, 32, 1, self.leaky))
-        layer.append(bottleNeck(32, 64, 1, self.leaky))
+        layer.append(bottleNeck(16, 32, 1, self.leaky))
+        layer.append(bottleNeck(32, 16, 1, self.leaky))
 
         if self.leaky:
             layer.append(nn.LeakyReLU(inplace=True))
         else:
             layer.append(nn.LeakyReLU(inplace=True))
-        layer.append(nn.ConvTranspose2d(32, 1, kernel_size=1, stride=1, padding=0))
+        layer.append(nn.ConvTranspose2d(16, 1, kernel_size=1, stride=1, padding=0))
         layer.append(nn.BatchNorm2d(1, eps=0.001, momentum=0.01))
 
         return nn.ModuleList(layer)
