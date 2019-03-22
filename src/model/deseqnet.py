@@ -170,8 +170,22 @@ class downSample2d(nn.Module):
         return out
 
 class upSample2d(nn.Module):
-    def __init__(self):
+    def __init__(self, inChannel, outChannel, stride=2, leaky=False):
         super(upSample2d, self).__init__()
+        self.convTran = nn.ConvTranspose2d(inChannel, outChannel, kernel_size=3, stride=stride, padding=1)
+        self.bn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
+
+        if leaky:
+            self.relu = nn.LeakyReLU(inplace=True)
+        else:
+            self.relu = nn.ReLU(inplace=True)
+        self.stride = stride
+
+    def forward(self, x):
+        out = self.convTran(x)
+        out = self.bn(out)
+        out = self.relu(out)
+        return out
 
 class denseSequentialNet(nn.Module):
     '''
@@ -189,7 +203,7 @@ class denseSequentialNet(nn.Module):
     accuracy with significantly increased computation. We select one of
     ReLU or LeakyReLU as activation function through the model.
     '''
-    def __init__(self, leaky=False, rnnType="GRU", concatenateNum=0):
+    def __init__(self, numHidden, numRNN, leaky=False, rnnType="GRU", concatenateNum=0):
         super(denseSequentialNet, self).__init__()
 
         # Build up two channels of encoder for the horizontal projection and
@@ -199,12 +213,26 @@ class denseSequentialNet(nn.Module):
 
         # Sequential processing layers, GRU, LSTM or QRNN, decided by input
         # parameter rnnType
+        if (rnnType == "GRU"):
+            self.rnns = [nn.GRU(32 if i == 0 else numHidden, numHidden if i == numRNN - 1 else 32, 1, dropout=0)
+                        for i in range(numRNN)]
+        elif(rnnType == "LSTM"):
+            self.rnns = [nn.LSTM(32 if i == 0 else numHidden, numHidden if i == numRNN - 1 else 32, 1, dropout=0)
+                         for i in range(numRNN)]
 
         # Decoder receives a set of aligned characteristic vectors to predict
         # confidence map of spatial location of key points.
+        self.decoder = self.buildDecoder()
+
         self.leaky = leaky
         self.rnnType = rnnType
+
     def forward(self, x):
+        #X = self.encoderX(x[:, :, 0])
+        #y = self.encoderY(x[:, :, 1])
+
+        #characVector =
+        #characVector = self.rnns(characVector)
         return x
 
     def buildEncoder(self):
@@ -231,8 +259,27 @@ class denseSequentialNet(nn.Module):
 
         return nn.ModuleList(layer)
 
-    #def buildRNN(self):
-    #def buildDecoder(self):
+    def buildDecoder(self):
+        # Decoder/generator model of keypoint confidence map
+        layer = []
+
+        # Two upsample layers
+        for i in range(2):
+            layer.append(bottleNeck(128/i, 256/i, self.leaky))
+            layer.append(bottleNeck(256/i, 128/i, self.leaky))
+            layer.append(upSample2d(128/i, 64/i))
+
+        layer.append(bottleNeck(64, 32, 1, self.leaky))
+        layer.append(bottleNeck(32, 64, 1, self.leaky))
+
+        if self.leaky:
+            layer.append(nn.LeakyReLU(inplace=True))
+        else:
+            layer.append(nn.LeakyReLU(inplace=True))
+        layer.append(nn.ConvTranspose2d(32, 1, kernel_size=1, stride=1, padding=0))
+        layer.append(nn.BatchNorm2d(1, eps=0.001, momentum=0.01))
+
+        return nn.ModuleList(layer)
 
     #def saveWeight(self, saveDirectory):
     #def loadWeight(self, saveDirectory):
