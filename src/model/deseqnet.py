@@ -30,6 +30,7 @@
 #   South East University, Vision and Cognition Laboratory, 211189 Nanjing, China
 ##################################################################################
 
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -57,7 +58,8 @@ def saveWeight(model, filePointer):
     for layer in model.modules():
         # Only deconvolutional layers, linear layers and batch normalization
         # layers need to save weights
-        if isinstance(layer, nn.Conv2d):
+        if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear) \
+                or isinstance(layer, nn.ConvTranspose2d):
             layer.bias.data.cpu().numpy().tofile(filePointer)
             layer.weight.data.cpu().numpy().tofile(filePointer)
 
@@ -82,7 +84,8 @@ def loadWeight(model, weights, ptr):
     # Traverse every layer of input model
     for layer in model.modules():
         # Load weights for convolutional and batch normalization layers
-        if isinstance(layer, nn.ConvTranspose2d):
+        if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear) \
+                or isinstance(layer, nn.ConvTranspose2d):
             numBias = layer.bias.numel()
             bias = torch.from_numpy(weights[ptr:ptr + numBias]).view_as(layer.bias)
             layer.bias.data.copy_(bias)
@@ -354,6 +357,44 @@ class denseSequentialNet(nn.Module):
 
         return nn.ModuleList(layer)
 
-    #def saveWeight(self, saveDirectory):
-    #def loadWeight(self, saveDirectory):
+    def saveWeight(self, saveDirectory):
+        # Open save directory and name the weight file as DeSeqNet
+        filePointer = open(os.path.join(saveDirectory, "DeSeqNet"), 'wb')
+        saveWeight(self.encoderX, filePointer)
+        saveWeight(self.encoderY, filePointer)
+
+        # Save weight of RNN
+        for modules in self.rnns:
+            modules.bias.data.cpu().numpy().tofile(filePointer)
+            modules._all_weights.data.cpu().numpy().tofile(filePointer)
+
+        # Save weight of decoder
+        saveWeight(self.decoder, filePointer)
+        filePointer.close()
+
+    def loadWeight(self, saveDirectory):
+        # Open save directory
+        filePointer = open(os.path.join(saveDirectory, "DeSeqNet"), 'rb')
+        weights = np.fromfile(filePointer, dtype=np.float32)
+        ptr = 0
+
+        # Load weight of two encoders
+        ptr = loadWeight(self.encoderX, weights, ptr)
+        ptr = loadWeight(self.encoderY, weights, ptr)
+
+        # Load weights of RNN
+        for modules in self.rnns:
+            numBias = modules.bias.numel()
+            bias = torch.from_numpy(weights[ptr:ptr + numBias]).view_as(modules.bias)
+            modules.bias.data.copy_(bias)
+            ptr += numBias
+
+            numWeights = modules._all_weights.numel()
+            weight = torch.from_numpy(weights[ptr:ptr + numWeights]).view_as(modules._all_weights)
+            modules._all_weights.data.copy_(weight)
+            ptr += numWeights
+
+        # Load weight of decoder
+        loadWeight(self.decoder, weights, ptr)
+
     #def concatenateModel(self):
