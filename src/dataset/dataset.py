@@ -62,7 +62,6 @@ class deSeqNetLoader(Dataset):
                              'thrx', 'neck', 'head', 'rwri', 'relb', 'rsho', 'lsho',
                              'lelb', 'lwri']
 
-
     def __getitem__(self, idx):
         '''
         Args:

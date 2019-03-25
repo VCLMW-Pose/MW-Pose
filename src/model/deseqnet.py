@@ -39,7 +39,7 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 
-__all__ = ['denseSequentialNet', 'saveWeight', 'loadWeight']
+__all__ = ['DeSeqNetProj', 'saveWeight', 'loadWeight']
 
 def saveWeight(model, filePointer):
     '''
@@ -192,7 +192,7 @@ class upSample2d(nn.Module):
         out = self.relu(out)
         return out
 
-class denseSequentialNet(nn.Module):
+class DeSeqNetProj(nn.Module):
     '''
     Densely connected sequential processing network is a feature extraction
     and prediction model with sequential input process capability. The basic
@@ -209,7 +209,7 @@ class denseSequentialNet(nn.Module):
     ReLU or LeakyReLU as activation function through the model.
     '''
     def __init__(self, numHidden, numRNN, leaky=False, rnnType="GRU", concatenateNum=0):
-        super(denseSequentialNet, self).__init__()
+        super(DeSeqNetProj, self).__init__()
 
         # Build up two channels of encoder for the horizontal projection and
         # the perpendicular projection of RF signal energies.
@@ -400,3 +400,28 @@ class denseSequentialNet(nn.Module):
         loadWeight(self.decoder, weights, ptr)
 
     #def concatenateModel(self):
+
+class DeSeqNetFull(nn.Module):
+    '''
+    DeSeqNetFull gets 3 dimensional input, expecting to be 60x13x13. Suggested
+    by input parameters imgSize and inpChannel:
+                        inpChannel x imgSize x imgSize.
+    The feature extraction encoders encoderX and encoderY in
+    DeSeqNetProj are replaced with one encoder, with number of filters and
+    down sample procedure changed. DeSeqNetFull adapts similar blocks in
+    encoder with DeSeqNetProj, and use RNN--LSTM or GRU to process the
+    characteristic vectors. This model implement the decoder using same
+    decoder model adapted by DeSeqNetProj.
+    Concatenation of DeSeqNetFull takes prediction from previous DeSeqNetFull
+    and original input image as input. Deeper concatenation uses the
+    prediction from several previous DeSeqNetFull and original input image
+    as input to refine ultimate prediction. Intermediate supervision is
+    applied to each DeSeqNetFull extricating gradient vanishing.
+    Tricks like weight decay and dropout are adopted to handle over fitting,
+    since the model is trained on a tiny dataset.
+    '''
+
+class QDeSeqNetFull(nn.Module):
+    '''
+
+    '''
