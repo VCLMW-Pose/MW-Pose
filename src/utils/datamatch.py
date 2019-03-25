@@ -111,8 +111,40 @@ def analysis(data_dir, max_err):
     plt.savefig(data_dir + "/Scatter.png")
     plt.show()
 
+def frame_analysis(data_dir):
+    """
+    This function is designed to match walabot data with optical data
+            having the least time delay(less than max_err).
+    :param data_dir: directory of the top folder of data
+    """
+
+    for _, dirs, _ in os.walk(data_dir, topdown=True):
+        for dir in dirs:
+            if dir[0] != '_':
+                continue
+            walabots = []
+            for root, subdirs, _ in os.walk(os.path.join(data_dir, dir), topdown=True):
+                for subdir in subdirs:
+                    walabots.append(float(subdir))
+                walabots.sort()
+                break
+            x = np.arange(0, len(walabots), 1)
+            walabots = np.array(walabots)
+            walabots = walabots - walabots[0]
+            walabots = walabots/1000
+            plt.title('Frame Anaslysis '+ dir, fontsize=16, loc='left', color='g')
+            plt.xlim((0, len(walabots)))
+            plt.ylim((0, walabots[-1]))
+            plt.ylabel('Interval (s)', fontsize=10, color='b')
+            plt.scatter(x, walabots, c='b', s=10)
+            plt.savefig(data_dir + '/' + dir + ".png")
+            plt.show()
+        break  # Only traverse top directory
+
+
 
 if __name__ == "__main__":
     matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01, False)
     analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
+    frame_analysis("/Users/midora/Desktop/MW-Pose/datacontainer")
     print("Completed!")

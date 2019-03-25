@@ -71,6 +71,32 @@ class Annotation:
                 dict_joints[self.parts[int(joint[0])]] = [int(str_coor[0]), int(str_coor[1])]
             self.annotation[name] = dict_joints
 
+    def plot_skeleton(self, img, data_file, thick):
+        '''
+            Args:
+                window_name: (string)
+                img: (PILImage) image for annotating
+                data_file: (string) file name e.g. 1551601527845.jpg
+                thick: (int) thick of the line
+                key: (int) the length of time the window stays
+        '''
+        joints = self.annotation[data_file]
+        img = plt.plot(img, joints['rank'], joints['rkne'], color='#B5663C', linewidth=thick)
+        img = plt.plot(img, joints['rkne'], joints['rhip'], color='#FACB5B', linewidth=thick)
+        img = plt.plot(img, joints['rhip'], joints['pelv'], color='#2362B1', linewidth=thick)
+        img = plt.plot(img, joints['lhip'], joints['pelv'], color='#2362B1', linewidth=thick)
+        img = plt.plot(img, joints['lhip'], joints['lkne'], color='#42DA80', linewidth=thick)
+        img = plt.plot(img, joints['lkne'], joints['lank'], color='#3E793A', linewidth=thick)
+        img = plt.plot(img, joints['pelv'], joints['thrx'], color='#171976', linewidth=thick)
+        img = plt.plot(img, joints['thrx'], joints['neck'], color='#983B62', linewidth=thick)
+        img = plt.plot(img, joints['neck'], joints['head'], color='#F43CA6', linewidth=thick)
+        img = plt.plot(img, joints['neck'], joints['rsho'], color='#F43BAC', linewidth=thick)
+        img = plt.plot(img, joints['relb'], joints['rsho'], color='#3387EF', linewidth=thick)
+        img = plt.plot(img, joints['rwri'], joints['relb'], color='#2362B1', linewidth=thick)
+        img = plt.plot(img, joints['neck'], joints['lsho'], color='#F43BAC', linewidth=thick)
+        img = plt.plot(img, joints['lsho'], joints['lelb'], color='#3138DA', linewidth=thick)
+        img = plt.plot(img, joints['lelb'], joints['lwri'], color='#171976', linewidth=thick)
+        return img
 
 def tag(name):
     pass
@@ -82,49 +108,11 @@ def load_img(dir, file):
     plt.imshow(img)
     plt.axis('on')
     plt.title('image')
+    
     plt.show()
 
 
-def plot_skeleton(img, coor, thick):
-    '''
-        Args:
-            window_name: (string)
-            img: (ndarray) image for annotating
-            coor: (list or tuple) shape (16, 2)
-            thick: (int) thick of the line
-            key: (int) the length of time the window stays
-    '''
-    if not ((coor[0][0] == 0 and coor[0][1] == 0) or (coor[1][0] == 0 and coor[1][1] == 0)):
-        img = plt.plot(img, coor[0], coor[1], (181, 102, 60), thick)
-    if not ((coor[1][0] == 0 and coor[1][1] == 0) or (coor[2][0] == 0 and coor[2][1] == 0)):
-        img = plt.plot(img, coor[1], coor[2], (250, 203, 91), thick)
-    if not ((coor[2][0] == 0 and coor[2][1] == 0) or (coor[6][0] == 0 and coor[6][1] == 0)):
-        img = plt.plot(img, coor[2], coor[6], (35, 98, 177), thick)
-    if not ((coor[3][0] == 0 and coor[3][1] == 0) or (coor[6][0] == 0 and coor[6][1] == 0)):
-        img = plt.plot(img, coor[3], coor[6], (35, 98, 177), thick)
-    if not ((coor[3][0] == 0 and coor[3][1] == 0) or (coor[4][0] == 0 and coor[4][1] == 0)):
-        img = plt.plot(img, coor[3], coor[4], (66, 218, 128), thick)
-    if not ((coor[4][0] == 0 and coor[4][1] == 0) or (coor[5][0] == 0 and coor[5][1] == 0)):
-        img = plt.plot(img, coor[4], coor[5], (62, 121, 58), thick)
-    if not ((coor[6][0] == 0 and coor[6][1] == 0) or (coor[7][0] == 0 and coor[7][1] == 0)):
-        img = plt.plot(img, coor[6], coor[7], (23, 25, 118), thick)
-    if not ((coor[7][0] == 0 and coor[7][1] == 0) or (coor[8][0] == 0 and coor[8][1] == 0)):
-        img = plt.plot(img, coor[7], coor[8], (152, 59, 98), thick)
-    if not ((coor[8][0] == 0 and coor[8][1] == 0) or (coor[9][0] == 0 and coor[9][1] == 0)):
-        img = plt.plot(img, coor[8], coor[9], (244, 60, 166), thick)
-    if not ((coor[8][0] == 0 and coor[8][1] == 0) or (coor[12][0] == 0 and coor[12][1] == 0)):
-        img = plt.plot(img, coor[8], coor[12], (244, 59, 166), thick)
-    if not ((coor[11][0] == 0 and coor[11][1] == 0) or (coor[12][0] == 0 and coor[12][1] == 0)):
-        img = plt.plot(img, coor[11], coor[12], (51, 135, 239), thick)
-    if not ((coor[10][0] == 0 and coor[10][1] == 0) or (coor[11][0] == 0 and coor[11][1] == 0)):
-        img = plt.plot(img, coor[10], coor[11], (35, 98, 177), thick)
-    if not ((coor[8][0] == 0 and coor[8][1] == 0) or (coor[13][0] == 0 and coor[13][1] == 0)):
-        img = plt.plot(img, coor[8], coor[13], (244, 59, 166), thick)
-    if not ((coor[13][0] == 0 and coor[13][1] == 0) or (coor[14][0] == 0 and coor[14][1] == 0)):
-        img = plt.plot(img, coor[13], coor[14], (49, 56, 218), thick)
-    if not ((coor[14][0] == 0 and coor[14][1] == 0) or (coor[15][0] == 0 and coor[15][1] == 0)):
-        img = plt.plot(img, coor[14], coor[15], (23, 25, 118), thick)
-    return img
+
 
 
 def annotate(dir):
@@ -140,5 +128,12 @@ if __name__ == "__main__":
     anno = Annotation(dir)
     for file in anno.data_files:
         load_img(dir, file)
+        # img = Image.open(os.path.join(dir, file))
+        # plt.figure("Image")
+        # plt.imshow(img)
+        # plt.axis('on')
+        # plt.title('image')
+        # anno.plot_skeleton(img, file, 0.2)
+        plt.show()
         break
     print('Completed!')
