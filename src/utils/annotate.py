@@ -13,6 +13,7 @@ import os
 from PIL import Image
 import matplotlib.pyplot as plt
 
+__all__ = ['Annotation']
 
 class Annotation:
     def __init__(self, dir):
@@ -84,7 +85,6 @@ def load_img(dir, file):
     plt.title('image')
     plt.show()
 
-
 def plot_skeleton(img, coor, thick):
     '''
         Args:
@@ -126,7 +126,6 @@ def plot_skeleton(img, coor, thick):
         img = plt.plot(img, coor[14], coor[15], (23, 25, 118), thick)
     return img
 
-
 def annotate(dir):
     if os.path.exists(os.path.join(dir, 'joint_point.txt')):
         with open(os.path.join(dir, 'joint_point.txt'), 'r') as f:
@@ -134,9 +133,8 @@ def annotate(dir):
     for _, dirs, _ in os.walk(dir, topdown=True):
         pass
 
-
 if __name__ == "__main__":
-    dir = '/Users/midora/Desktop/MW-Pose/section_del/_2.0'
+    dir = 'res/'
     anno = Annotation(dir)
     for file in anno.data_files:
         load_img(dir, file)

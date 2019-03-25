@@ -233,7 +233,7 @@ class denseSequentialNet(nn.Module):
         self.rnnType = rnnType
         self.concatenateNum = concatenateNum
 
-    def forward(self, x):
+    def forward(self, x, hidden):
         '''
         Forward propagation of DeSeqNet includes a series of shortcut channels.
         For each encoder, there are shortcut channels in each down
@@ -282,8 +282,8 @@ class denseSequentialNet(nn.Module):
         # Concatenate characteristic vectors get by encoderX and encoderY
         # as the input vector to RNNs
         characVec = torch.cat((outx, outy), 0)
-        for rnn in self.rnns:
-            characVec = rnn(characVec)
+        for rnn, hid in zip(self.rnns, hidden):
+            characVec, hid = rnn(characVec, hid)
 
         # Decoder propagation pipeline
         out = self.decoder[0](characVec)
@@ -300,7 +300,7 @@ class denseSequentialNet(nn.Module):
             out = self.decoder[3*i + 2](out)
 
         for i in range(12, 16): out = self.decoder[i](out)
-        return x
+        return x, hidden
 
     def buildEncoder(self):
         layer = []
