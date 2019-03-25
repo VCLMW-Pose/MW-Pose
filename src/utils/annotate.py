@@ -124,16 +124,16 @@ def annotate(dir):
 
 
 if __name__ == "__main__":
-    dir = '/Users/midora/Desktop/MW-Pose/section_del/_2.0'
+    dir = '/Users/midora/Desktop/MW-Pose/section_del/_7.0'
     anno = Annotation(dir)
     for file in anno.data_files:
         load_img(dir, file)
-        # img = Image.open(os.path.join(dir, file))
-        # plt.figure("Image")
-        # plt.imshow(img)
-        # plt.axis('on')
-        # plt.title('image')
-        # anno.plot_skeleton(img, file, 0.2)
+        img = Image.open(os.path.join(dir, file))
+        plt.figure("Image")
+        plt.imshow(img)
+        plt.axis('on')
+        plt.title('image')
+        anno.plot_skeleton(img, file, 0.2)
         plt.show()
         break
     print('Completed!')
