@@ -39,6 +39,8 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 
+__all__ = ['denseSequentialNet', 'saveWeight', 'loadWeight']
+
 def saveWeight(model, filePointer):
     '''
     Save weight of a model to a binary file. This is a cross-framework neural
