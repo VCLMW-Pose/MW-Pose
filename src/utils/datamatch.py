@@ -24,6 +24,8 @@ def matching(data_dir, max_err, rm_ori_file=False):
     :param max_err: maximum acceptable time delay
     :param rm_ori_file: Whether to remove the original files
     """
+    tt_jpg_num = 0
+    tt_walbolot_num = 0
     tt_matched_num = 0  # Number of data files matched in all the folders
     for _, dirs, _ in os.walk(data_dir, topdown=True):
         with open(data_dir + "/time_info.txt", 'a') as f:
@@ -40,8 +42,10 @@ def matching(data_dir, max_err, rm_ori_file=False):
                         # Do not search jpg ,txt and hidden files
                         if file[-1] == 'g':
                             jpgs.append(file)
+                            tt_jpg_num += 1
                         elif file[-1] >= '0' and file[-1] <= '9':
                             walabots.append(file)
+                            tt_walbolot_num += 1
                     jpgs.sort()
                     walabots.sort()
                     pos = 0
@@ -79,6 +83,8 @@ def matching(data_dir, max_err, rm_ori_file=False):
                 print("%d data has been matched in %s." % (matched_num, dir))
         break  # Only traverse top directory
     print("%d data has been matched totally." % tt_matched_num)
+    print("%d optical data files are gathered." % tt_jpg_num)
+    print("%d walabot signal files are gathered." % tt_walbolot_num)
 
 
 def analysis(data_dir, max_err):
@@ -101,6 +107,7 @@ def analysis(data_dir, max_err):
         delay = line.split('\t')[2]
         x.append(random())
         delays.append(float(delay))
+    matched = len(x)
     x = np.array(x)
     delays = np.array(delays)
     plt.title('Time Delay Scatter', fontsize=16, loc='left', color='g')
@@ -108,8 +115,10 @@ def analysis(data_dir, max_err):
     plt.ylim((0, max_err))
     plt.ylabel('Difference (s)', fontsize=10, color='b')
     plt.scatter(x, delays, c='b', s=10)
+    plt.text(0.6, 0.0102, 'Totally matched data:%d' % matched, color='b')
     plt.savefig(data_dir + "/Scatter.png")
     plt.show()
+
 
 def frame_analysis(data_dir):
     """
@@ -129,8 +138,8 @@ def frame_analysis(data_dir):
             x = np.arange(0, len(walabots), 1)
             walabots = np.array(walabots)
             walabots = walabots - walabots[0]
-            walabots = walabots/1000
-            plt.title('Frame Anaslysis '+ dir, fontsize=16, loc='left', color='g')
+            walabots = walabots / 1000
+            plt.title('Frame Anaslysis ' + dir, fontsize=16, loc='left', color='g')
             plt.xlim((0, len(walabots)))
             plt.ylim((0, walabots[-1]))
             plt.ylabel('Interval (s)', fontsize=10, color='b')
@@ -138,6 +147,7 @@ def frame_analysis(data_dir):
             plt.savefig(data_dir + '/' + dir + ".png")
             plt.show()
         break  # Only traverse top directory
+
 
 def frame_analysis_anno(data_dir):
     """
@@ -152,15 +162,15 @@ def frame_analysis_anno(data_dir):
             walabots = []
             for root, _, files in os.walk(os.path.join(data_dir, dir), topdown=True):
                 for file in files:
-                    if(file[-4:] == '.jpg'):
+                    if (file[-4:] == '.jpg'):
                         walabots.append(float(file[:-4]))
                 walabots.sort()
                 break
             x = np.arange(0, len(walabots), 1)
             walabots = np.array(walabots)
             walabots = walabots - walabots[0]
-            walabots = walabots/1000
-            plt.title('Frame Anaslysis '+ dir, fontsize=16, loc='left', color='g')
+            walabots = walabots / 1000
+            plt.title('Frame Anaslysis ' + dir, fontsize=16, loc='left', color='g')
             plt.xlim((0, len(walabots)))
             plt.ylim((0, walabots[-1]))
             plt.ylabel('Interval (s)', fontsize=10, color='b')
@@ -169,9 +179,10 @@ def frame_analysis_anno(data_dir):
             plt.show()
         break  # Only traverse top directory
 
+
 if __name__ == "__main__":
-    # matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01, False)
-    # analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
-    # frame_analysis("/Users/midora/Desktop/MW-Pose/datacontainer")
-    frame_analysis_anno('/Users/midora/Desktop/MW-Pose/section_del')
+    matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01, False)
+    analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
+    frame_analysis("/Users/midora/Desktop/MW-Pose/datacontainer")
+    # frame_analysis_anno('/Users/midora/Desktop/MW-Pose/section_del')
     print("Completed!")
