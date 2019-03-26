@@ -34,6 +34,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
 from src.utils import file_names
 from src.utils import scaling
+from src.utils import Annotation
 import numpy as np
 import torch
 import cv2
@@ -42,16 +43,24 @@ __all__ = ['deSeqNetLoader']
 
 class deSeqNetLoader(Dataset):
     '''
-    The data loader of DeSeqNet.
+    The data loader of DeSeqNet. The annotations are kept in a txt file and
+    each row stands for a person. deSeqNetLoader reads the annotation.
+    When extracting data from deSeqNetloader, it generates confidence maps
+    of key points as Ground Truth of deSeqNetLoader output.
+    ***The batch size denotes the frame number of a video clip, ensure
+    the batch size selected will not includes data from different video clip
+    which may trigger non convergence of RNN layers!***
+    ***Do not set shuffle to True! RNN layers need an intact and continuous
+    video clip to converge.***
     '''
-    def __init__(self, folder_path, img_size):
-        '''
-        Args:
-             folder_path    : (string) directory storing MNIST data set
-             img_size       : (int) input dimensions of MNIST images
-        '''
-        self.img_list = file_names(folder_path)
-        self.img_size = img_size
+    def __init__(self, dataDirectory, inputSize):
+        self.anno = Annotation(dataDirectory)
+        self.inputSize = inputSize
+
+        self.keyPointName = ['None',  # To be compatible with the pre-annotation
+                            'rank', 'rkne', 'rhip', 'lhip', 'lkne', 'lank', 'pelv',
+                             'thrx', 'neck', 'head', 'rwri', 'relb', 'rsho', 'lsho',
+                             'lelb', 'lwri']
 
     def __getitem__(self, idx):
         '''
