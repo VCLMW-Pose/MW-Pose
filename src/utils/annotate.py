@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   :
+    Last edit date   : Wed Mar 27 00:37 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -28,11 +28,12 @@ class Annotation:
                                         }
             }
     """
+
     def __init__(self, dir):
         """
             Args:
-                dir: Directory of folder for pre-annotated data
-                        e.g. /Users/midora/Desktop/MW-Pose/section_del/_1.0
+                dir: (string) Directory of folder for pre-annotated data
+                        e.g. '/Users/midora/Desktop/MW-Pose/section_del/_1.0'
         """
         self.dir = dir
         if os.path.exists(os.path.join(dir, 'refined.txt')):
@@ -65,7 +66,7 @@ class Annotation:
         lwri: left wrist
         """
         self.__load_annofile()
-        self.data_files = self.annotation.keys()
+        self.data_files = list(self.annotation.keys())
         self.cur_file = 0
         self.radius = 6  # Range of discernible click
         self.drawing = False
@@ -74,6 +75,7 @@ class Annotation:
         self.ix = 0
         self.iy = 0
         self.img = None  # To store th original image for clearing the skeleton.
+        self.window_name = ''
 
     def __len__(self):
         return len(self.annotation)
@@ -85,6 +87,7 @@ class Annotation:
         """
         Private Function
         To load pre-annotation.
+        Do not care about the file architecture
         """
         with open(self.anno_file) as f:
             lines = f.readlines()
@@ -99,37 +102,57 @@ class Annotation:
                 dict_joints[self.parts[int(joint[0])]] = [int(str_coor[0]), int(str_coor[1])]
             self.annotation[name] = dict_joints
 
-    def __revise(self):
-        with open(dir)
+    def lood_img(self, idx):
+        if idx >= len(self):
+            print("Index out of range!")
+            return
+        jpg = self.data_files[idx]
+        if os.path.exists(os.path.join(self.dir, jpg[:-4])):
+            for root, _, files in os.walk(os.path.join(self.dir, jpg[:-4])):
+                for file in files:
+                    if file[-4:] == '.jpg':
+                        return cv2.imread(os.path.join(root, file))
 
+    def revise(self):
+        of = os.path.join(dir, 'refined.txt')
+        with open(of, 'w') as f:
+            for jpg in self.data_files:
+                f.writelines([jpg, ' : '])
+                for i, part in enumerate(self.parts):
+                    if part == 'None':
+                        continue
+                    x = str(self.annotation[jpg][part][0])
+                    y = str(self.annotation[jpg][part][1])
+                    f.writelines([str(i), '(', x, ', ', y, ') '])
+                f.writelines(['\n'])
 
     def plot_skeleton(self, img, data_file, thick):
         '''
             Args:
-                window_name: (string)
-                img: (PILImage) image for annotating
-                data_file: (string) file name e.g. 1551601527845.jpg
-                thick: (int) thick of the line
-                key: (int) the length of time the window stays
+                window_name:    (string)
+                img:            (PILImage) image for annotating
+                data_file:      (string) file name e.g. 1551601527845.jpg
+                thick:          (int) thick of the line
+                key:            (int) the length of time the window stays
         '''
         joints = self.annotation[data_file]
         for i in range(1, len(self.parts)):
             joints[self.parts[i]] = (joints[self.parts[i]][0], joints[self.parts[i]][1])
         img = cv2.line(img, joints['rank'], joints['rkne'], (181, 102, 60), thickness=thick)
         img = cv2.line(img, joints['rkne'], joints['rhip'], (250, 203, 91), thickness=thick)
-        img = cv2.line(img, joints['rhip'], joints['pelv'], (35, 98, 177),  thickness=thick)
-        img = cv2.line(img, joints['lhip'], joints['pelv'], (35, 98, 177),  thickness=thick)
+        img = cv2.line(img, joints['rhip'], joints['pelv'], (35, 98, 177), thickness=thick)
+        img = cv2.line(img, joints['lhip'], joints['pelv'], (35, 98, 177), thickness=thick)
         img = cv2.line(img, joints['lhip'], joints['lkne'], (66, 218, 128), thickness=thick)
-        img = cv2.line(img, joints['lkne'], joints['lank'], (62, 121, 58),  thickness=thick)
-        img = cv2.line(img, joints['pelv'], joints['thrx'], (23, 25, 118),  thickness=thick)
-        img = cv2.line(img, joints['thrx'], joints['neck'], (152, 59, 98),  thickness=thick)
+        img = cv2.line(img, joints['lkne'], joints['lank'], (62, 121, 58), thickness=thick)
+        img = cv2.line(img, joints['pelv'], joints['thrx'], (23, 25, 118), thickness=thick)
+        img = cv2.line(img, joints['thrx'], joints['neck'], (152, 59, 98), thickness=thick)
         img = cv2.line(img, joints['neck'], joints['head'], (244, 60, 166), thickness=thick)
         img = cv2.line(img, joints['neck'], joints['rsho'], (244, 59, 166), thickness=thick)
         img = cv2.line(img, joints['relb'], joints['rsho'], (51, 135, 239), thickness=thick)
-        img = cv2.line(img, joints['rwri'], joints['relb'], (35, 98, 177),  thickness=thick)
+        img = cv2.line(img, joints['rwri'], joints['relb'], (35, 98, 177), thickness=thick)
         img = cv2.line(img, joints['neck'], joints['lsho'], (244, 59, 166), thickness=thick)
-        img = cv2.line(img, joints['lsho'], joints['lelb'], (49, 56, 218),  thickness=thick)
-        img = cv2.line(img, joints['lelb'], joints['lwri'], (23, 25, 118),  thickness=thick)
+        img = cv2.line(img, joints['lsho'], joints['lelb'], (49, 56, 218), thickness=thick)
+        img = cv2.line(img, joints['lelb'], joints['lwri'], (23, 25, 118), thickness=thick)
         for joint in self.parts:
             if joint == 'None':
                 continue
@@ -145,6 +168,8 @@ class Annotation:
         Standard template parameter list of mouse callback function
         Readers could refer to the following blog:
                 https://blog.csdn.net/weixin_41115751/article/details/84137783
+
+        This function uses motion of mouse with the left bottom down to change one joint coordinate
         """
         if event == cv2.EVENT_LBUTTONDOWN:
             self.drawing = True
@@ -162,31 +187,33 @@ class Annotation:
         elif event == cv2.EVENT_MOUSEMOVE and flags == cv2.EVENT_FLAG_LBUTTON:
             if self.drawing is True:
                 self.joints[self.selected] = [x, y]
-            img = anno.img.copy()
+            img = self.img.copy()
             self.plot_skeleton(img, self.cur_file, 2)
-            cv2.imshow(window_name, img)
+            cv2.imshow(self.window_name, img)
         elif event == cv2.EVENT_LBUTTONUP:
             if self.drawing is True:
                 self.joints[self.selected] = [x, y]
             self.drawing = False
-            img = anno.img.copy()
+            img = self.img.copy()
             self.plot_skeleton(img, self.cur_file, 2)
-            cv2.imshow(window_name, img)
+            cv2.imshow(self.window_name, img)
 
     def MouseCallback_click(self, event, x, y, flags, param):
         """
                 Standard template parameter list of mouse callback function
                 Readers could refer to the following blog:
                         https://blog.csdn.net/weixin_41115751/article/details/84137783
-                """
+
+                This function uses two click of the left mouse bottom to change one joint coordinate
+        """
         if event == cv2.EVENT_LBUTTONDOWN:
             if self.drawing:
                 self.drawing = False
                 self.annotation[self.cur_file][self.selected] = [x, y]
                 self.selected = ''
-                img = anno.img.copy()
+                img = self.img.copy()
                 self.plot_skeleton(img, self.cur_file, 2)
-                cv2.imshow(window_name, img)
+                cv2.imshow(self.window_name, img)
             else:
                 self.joints = self.annotation[self.cur_file]
                 self.selected = ''
@@ -201,50 +228,44 @@ class Annotation:
                         # The joint selected should be with the least "distance".
                         self.drawing = True
                 if self.drawing:
-                    img = anno.img.copy()  # To clear the original skeleton.
+                    img = self.img.copy()  # To clear the original skeleton.
                     self.plot_skeleton(img, self.cur_file, 2)
-                    cv2.imshow(window_name, img)
+                    cv2.imshow(self.window_name, img)
 
 
-def load_img(dir, file):
-    img = cv2.imread(os.path.join(dir, file))
-    cv2.namedWindow(dir.split('/')[-1] + '/' + file)
-    return img
-
-
-def annotate(dir):
-    if os.path.exists(os.path.join(dir, 'joint_point.txt')):
-        with open(os.path.join(dir, 'joint_point.txt'), 'r') as f:
-            lines = f.reandlines()
-    for _, dirs, _ in os.walk(dir, topdown=True):
-        pass
+def annotate(dir, mode):
+    """
+    Args:
+        dir:    (string) directory of one group of data
+        mode:   (string) decide whether to move or click to change the joint point
+    """
+    anno = Annotation(dir)
+    for idx, anno.cur_file in enumerate(anno.data_files):
+        anno.window_name = dir.split('/')[-1] + '/' + anno.cur_file
+        anno.img = anno.lood_img(idx)
+        img = anno.img.copy()
+        cv2.namedWindow(anno.window_name)
+        anno.plot_skeleton(img, anno.cur_file, 2)
+        if mode == 'drag':
+            cv2.setMouseCallback(anno.window_name, anno.MouseCallback_drag)
+        elif mode == 'click':
+            cv2.setMouseCallback(anno.window_name, anno.MouseCallback_click)
+        else:
+            print("No mode named:" + mode)
+        cv2.startWindowThread()
+        cv2.imshow(anno.window_name, img)
+        while True:
+            if cv2.waitKey(10) & 0xFF == ord('\r'):
+                break
+    anno.revise()
+    cv2.destroyAllWindows()
+    cv2.waitKey(1)
+    cv2.waitKey(1)
+    cv2.waitKey(1)
+    cv2.waitKey(1)
 
 
 if __name__ == "__main__":
-    dir = '/Users/midora/Desktop/MW-Pose/section_del/_7.0'
-    anno = Annotation(dir)
-    for anno.cur_file in anno.data_files:
-        window_name = dir.split('/')[-1] + '/' + anno.cur_file
-        anno.img = cv2.imread(os.path.join(dir, anno.cur_file))
-        img = anno.img.copy()
-        cv2.namedWindow(window_name)
-        anno.plot_skeleton(img, anno.cur_file, 2)
-        cv2.setMouseCallback(window_name, anno.MouseCallback_drag)
-        cv2.putText(img, str(random()), (100, 100), cv2.FONT_HERSHEY_PLAIN,
-                    1.0, (0, 0, 0), thickness=2)
-        cv2.imshow(window_name, img)
-        img = anno.img.copy()
-        while (True):
-            try:
-                cv2.waitKey(100)
-            except Exception:
-                cv2.destroyAllWindows()
-                break
-
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        break
-    cv2.waitKey(0)
-    # while(cv2.waitKey(10) != 'q'):
-    #     continue
+    dir = '/Users/midora/Desktop/MW-Pose/datacontainer/_7.0'
+    annotate(dir, 'drag')
     print('Completed!')
