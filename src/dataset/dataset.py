@@ -74,11 +74,13 @@ class deSeqNetLoader(Dataset):
         '''
         self.anno = Annotation(dataDirectory)
         self.inputSize = inputSize
+        self.GTSize = GTSize
 
         self.keyPointName = ['None',  # To be compatible with the pre-annotation
                             'rank', 'rkne', 'rhip', 'lhip', 'lkne', 'lank', 'pelv',
                              'thrx', 'neck', 'head', 'rwri', 'relb', 'rsho', 'lsho',
                              'lelb', 'lwri']
+        self.selectPoint = selectPoint
         self.rotate = rotate
         self.shuffle = shuffle
         self.frames = clipFrame
@@ -104,4 +106,13 @@ class deSeqNetLoader(Dataset):
         return len(self.img_list)
 
     def reorder(self):
+        return
+
+    def rotate(self):
+        return
+
+    def confidenceMap(self):
+        return
+
+    def getGroundTruth(self):
         return
