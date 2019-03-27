@@ -26,7 +26,7 @@
 #
 #   Dataloader implementation of all networks.
 #
-#   Shrowshoo-Young 2019-2, shaoshuyangseu@gmail.com
+#   Shrowshoo-Young 2019-3, shaoshuyangseu@gmail.com
 #   South East University, Vision and Cognition Laboratory, 211189 Nanjing, China
 ##################################################################################
 
@@ -56,12 +56,15 @@ class deSeqNetLoader(Dataset):
     and continuous video clip to converge. If shuffle is needed, please set
     the input parameter shuffle of deSeqNetLoader to True.***
     '''
-    def __init__(self, dataDirectory, inputSize, GTSize, clipFrame, selectPoint, rotate=False, shuffle=False):
+    def __init__(self, dataDirectory, inputSize, inputDepth, GTSize, imgw, imgh, clipFrame, selectPoint, paraparse,
+                 rotate=False, shuffle=False):
         '''
         :param dataDirectory: directory of saving dataset, the annotation
         txt is named as joint_point.txt.
-        :param inputSize: dimensions of input RF signal heat maps.
+        :param inputSize, inputDepth: dimensions of input RF signal heat maps.
         :param GTSize: dimensions of output confidence heat map of key points.
+        :param imgw, imgh: dimensions of raw optical images, that is the
+        reference dimension of key point annotation coordinates.
         :param clipFrame: clipFrame defines how many frames are included in
         each video clip. This does not mean deSeqNetLoader provides grouped
         data, but only single frames that is not concerned with clipFrame.
@@ -70,6 +73,8 @@ class deSeqNetLoader(Dataset):
         :param selectPoint: this is a list defining what kinds of key points
         are wished to be predicted by DeSeqNet. Unselected key points will be
         absent in the ground truth confidence maps.
+        :param paraparse: argparse class that keeps the following coefficients:
+        sigma of 2d gaussian confidence map, expectation and sigma of rotation.
         :param rotate: defines whether to augment data through rotation.
         :param shuffle: defines whether reorder the sequence of data in each
         epoch.
@@ -77,7 +82,9 @@ class deSeqNetLoader(Dataset):
         # Max number of key points
         self.MAX_POINTNUM = 16
 
+        self.dataDirectory = dataDirectory
         self.inputSize = inputSize
+        self.inputDepth = inputDepth
         self.GTSize = GTSize
         self.keyPointName = ['None',  # To be compatible with the pre-annotation
                             'rank', 'rkne', 'rhip', 'lhip', 'lkne', 'lank', 'pelv',
@@ -87,6 +94,10 @@ class deSeqNetLoader(Dataset):
         self.rotate = rotate
         self.shuffle = shuffle
         self.frames = clipFrame
+        self.imgw = imgw
+        self.imgh = imgh
+        self.paraparse = paraparse
+
         # Read annotation
         self.anno = self.readAnnotation(dataDirectory)
 
@@ -100,17 +111,36 @@ class deSeqNetLoader(Dataset):
             self.reorder()
 
     def __getitem__(self, idx):
-        img = np.array(cv2.imread(self.img_list[idx]), dtype=float)
-        img = scaling(img, 20)
-        # Transform from BGR to RGB, HWC to CHW
-        img = torch.FloatTensor(img[:, :, ::-1].transpose((2, 0, 1)).copy()).div(255.0)
+        '''
+        Overide of __getitem__(). It acquire confidence map as ground truth
+        and read raw RF signal matrix. If rotation operation is required, it
+        performs rotation. The returns are confidence map and signal.
+        '''
+        # Get file name and eliminate its postfix '.jpg'
+        file_name = self.anno[idx]["fname"]
+        file_name = file_name[:-4]
 
-        return img
+        # Get confidence map ground truth and signal
+        conf_maps = self.getGroundTruth(idx)
+        signal = self.readSignal(self.dataDirectory + file_name)
+
+        # Data augmentation by rotating both signal and confidence map
+        if self.rotate:
+            conf_maps, signal = self.rotation(conf_maps, signal)
+
+        conf_maps = torch.from_numpy(conf_maps.astype(np.float32))
+        signal = torch.from_numpy(signal.astype(np.float32))
+
+        return conf_maps, signal
 
     def __len__(self):
         return len(self.anno)
 
     def reorder(self):
+        '''
+        Shuffle the video clips. Each frame is divided into groups which is
+        the least unit of this procedure.
+        '''
         # Generate indexs of data groups
         groups = len(self.anno)/self.frames
         groupidx = np.arange(groups)
@@ -125,17 +155,49 @@ class deSeqNetLoader(Dataset):
 
         self.anno = anno_new
 
-    def rotate(self, conf_maps, signal):
-        return
+    def rotation(self, conf_maps, signal):
+        '''
+        Data augmentation. Applied for RF signal matrix and confidence map
+        '''
+        # Generate gaussian distribution rotation angle
+        sigma = self.paraparse.rotate_sigma
+        rotate_ang = np.random.normal(0, sigma, 1)
+
+        # Compute 2d rotation matrix and rotate RF signal
+        M = cv2.getRotationMatrix2D(((self.inputSize - 1)/2, (self.inputSize - 1)/2), rotate_ang, 1)
+        for i in range(self.inputDepth):
+            signal[:, :, i] = cv2.warpAffine(signal[:, :, i], M, (self.inputSize, self.inputSize))
+
+        # Compute 2d rotation matrix and rotate confidence map ground truth
+        M = cv2.getRotationMatrix2D(((self.GTSize - 1)/2, (self.GTSize - 1)/2), rotate_ang, 1)
+        for i in range(len(self.selectPoint)):
+            conf_maps[:, :, i] = cv2.warpAffine(conf_maps[:, :, i], M, (self.GTSize, self.GTSize))
+
+        return conf_maps, signal
+
 
     def getGroundTruth(self, idx):
         target = self.anno[idx]
         conf_maps = np.zeros((self.GTSize, self.GTSize, len(self.selectPoint)))
+        sigma = self.paraparse.conf_sigma
+
+        # Coefficient of coordinates transformation
+        new_h = self.imgh*min(self.imgh / self.GTSize, self.imgw / self.GTSize)
+        new_w = self.imgw*min(self.imgh / self.GTSize, self.imgw / self.GTSize)
+        pad_h = (self.GTSize - new_h) / 2
+        pad_w = (self.GTSize - new_w) / 2
 
         for idx, point_name in enumerate(self.selectPoint):
             coord = target[point_name]
-            # transform of coordinates
-            putGaussianMap(coord, conf_maps[:, :, idx])
+
+            # Transformation of coordinates
+            coord[0] = coord[0]*(new_w / self.imgw)
+            coord[1] = coord[1]*(new_h / self.imgw)
+            coord[0] += pad_w
+            coord[0] += pad_h
+
+            # Add 2d gaussian confidence map
+            conf_maps[:, :, idx] = putGaussianMap(coord, conf_maps[:, :, idx], sigma, self.GTSize)
 
         return conf_maps
 
