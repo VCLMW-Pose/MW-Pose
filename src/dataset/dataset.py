@@ -34,10 +34,12 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
 from src.utils import file_names
 from src.utils import scaling
+from src.utils import putGaussianMap
 from src.utils import Annotation
 import numpy as np
 import torch
 import cv2
+import os
 
 __all__ = ['deSeqNetLoader']
 
@@ -72,10 +74,11 @@ class deSeqNetLoader(Dataset):
         :param shuffle: defines whether reorder the sequence of data in each
         epoch.
         '''
-        self.anno = Annotation(dataDirectory)
+        # Max number of key points
+        self.MAX_POINTNUM = 16
+
         self.inputSize = inputSize
         self.GTSize = GTSize
-
         self.keyPointName = ['None',  # To be compatible with the pre-annotation
                             'rank', 'rkne', 'rhip', 'lhip', 'lkne', 'lank', 'pelv',
                              'thrx', 'neck', 'head', 'rwri', 'relb', 'rsho', 'lsho',
@@ -84,17 +87,19 @@ class deSeqNetLoader(Dataset):
         self.rotate = rotate
         self.shuffle = shuffle
         self.frames = clipFrame
+        # Read annotation
+        self.anno = self.readAnnotation(dataDirectory)
 
+        # Discard the redundant annotation that cannot make up a group
+        length = len(self.anno)
+        remainder = length%self.frames
+        self.anno = self.anno[:length - remainder - 1]
+
+        # reorder the groups randomly
         if shuffle:
             self.reorder()
 
     def __getitem__(self, idx):
-        '''
-        Args:
-             idx            : (int) required index of corresponding data
-        Returns:
-             Required image (tensor)
-        '''
         img = np.array(cv2.imread(self.img_list[idx]), dtype=float)
         img = scaling(img, 20)
         # Transform from BGR to RGB, HWC to CHW
@@ -103,16 +108,77 @@ class deSeqNetLoader(Dataset):
         return img
 
     def __len__(self):
-        return len(self.img_list)
+        return len(self.anno)
 
     def reorder(self):
+        # Generate indexs of data groups
+        groups = len(self.anno)/self.frames
+        groupidx = np.arange(groups)
+
+        # Shuffle the group index
+        np.random.shuffle(groupidx)
+        anno_new = []
+
+        # Move the annotations to the new appointed address
+        for i in groupidx:
+            anno_new.append(self.anno[i*self.frames:(i + 1)*self.frames])
+
+        self.anno = anno_new
+
+    def rotate(self, conf_maps, signal):
         return
 
-    def rotate(self):
-        return
+    def getGroundTruth(self, idx):
+        target = self.anno[idx]
+        conf_maps = np.zeros((self.GTSize, self.GTSize, len(self.selectPoint)))
 
-    def confidenceMap(self):
-        return
+        for idx, point_name in enumerate(self.selectPoint):
+            coord = target[point_name]
+            # transform of coordinates
+            putGaussianMap(coord, conf_maps[:, :, idx])
 
-    def getGroundTruth(self):
-        return
+        return conf_maps
+
+    def readSignal(self, directory):
+        # Open the directory in the form of read only binary file
+        sig_file = open(directory, mode='rb')
+        data = np.fromfile(sig_file, dtype=np.int32)
+
+        # Dimensions
+        size_x = data[0]
+        size_y = data[1]
+        size_z = data[2]
+
+        # Resize the signal as size_z x size_x x size_y
+        raw_img = np.array(data[3:]).reshape(size_z, size_x, size_y)
+        return raw_img
+
+    def readAnnotation(self, dataDirectory):
+        with open(os.path.join(dataDirectory, 'joint_point.txt'), 'r') as file:
+            lines = file.readlines()
+
+        # Annotation list
+        anno = []
+        for line in lines:
+            # dictionary index to key point coordinates and file names
+            person = {}
+            line = line.split()
+            fileName = line[0]
+            person["fname"] = fileName
+
+            for i in range(self.MAX_POINTNUM):
+                # Read coordinates in the form of strings
+                xcoord = line[2 + 2*i]
+                ycoord = line[3 + 2*i]
+
+                # Extract integers from string
+                xcoord = int(xcoord.split('(')[1].rstrip(','))
+                ycoord = int(ycoord.rstrip(')'))
+
+                # Transfer to numpy array and assign to annotation recorder
+                coord = np.array([xcoord, ycoord])
+                person[self.keyPointName[i + 1]] = coord
+            # Append to annotation list
+            anno.append(person)
+
+        return anno

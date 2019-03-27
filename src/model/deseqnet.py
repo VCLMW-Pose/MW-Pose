@@ -420,8 +420,64 @@ class DeSeqNetFull(nn.Module):
     Tricks like weight decay and dropout are adopted to handle over fitting,
     since the model is trained on a tiny dataset.
     '''
+    def __init__(self, numHidden, numRNN, leaky=False, rnnType="GRU", concatenateNum=0,
+                weightDecay = 0, dropout = 0):
+        '''
+        :param numHidden:
+        :param numRNN:
+        :param leaky:
+        :param rnnType:
+        :param concatenateNum:
+        :param weightDecay:
+        :param dropout:
+        '''
+        return
+
+    def forward(self):
+        return
+
+    def buildEncoder(self):
+        return
+
+    def buildDecoder(self):
+        return
+
+    def saveWeight(self):
+        return
+
+    def loadWeight(self):
+        return
 
 class QDeSeqNetFull(nn.Module):
     '''
-
+    QDeSeqNetFull improves the sequential processing capability of DeSeqNet
+    by adapting Quasi-Recurrent Neural Network as the basic build block.
+    It takes the row RF signal as input but not the projection heat maps.
     '''
+    def __init__(self, numHidden, numRNN, leaky=False, rnnType="GRU", concatenateNum=0,
+                weightDecay = 0, dropout = 0):
+        '''
+        :param numHidden:
+        :param numRNN:
+        :param leaky:
+        :param rnnType:
+        :param concatenateNum:
+        :param weightDecay:
+        :param dropout:
+        '''
+        return
+
+    def forward(self):
+        return
+
+    def buildEncoder(self):
+        return
+
+    def buildDecoder(self):
+        return
+
+    def saveWeight(self):
+        return
+
+    def loadWeight(self):
+        return

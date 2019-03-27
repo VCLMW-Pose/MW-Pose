@@ -266,6 +266,6 @@ def annotate(dir, mode):
 
 
 if __name__ == "__main__":
-    dir = '/Users/midora/Desktop/MW-Pose/datacontainer/_7.0'
-    annotate(dir, 'drag')
+    dir = 'C:/PycharmProjects/MW-Pose/res/'
+    anno = Annotation(dir)
     print('Completed!')
