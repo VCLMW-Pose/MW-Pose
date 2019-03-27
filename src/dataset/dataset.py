@@ -50,10 +50,28 @@ class deSeqNetLoader(Dataset):
     ***The batch size denotes the frame number of a video clip, ensure
     the batch size selected will not includes data from different video clip
     which may trigger non convergence of RNN layers!***
-    ***Do not set shuffle to True! RNN layers need an intact and continuous
-    video clip to converge.***
+    ***Do not set shuffle of base class to True! RNN layers need an intact
+    and continuous video clip to converge. If shuffle is needed, please set
+    the input parameter shuffle of deSeqNetLoader to True.***
     '''
-    def __init__(self, dataDirectory, inputSize):
+    def __init__(self, dataDirectory, inputSize, GTSize, clipFrame, selectPoint, rotate=False, shuffle=False):
+        '''
+        :param dataDirectory: directory of saving dataset, the annotation
+        txt is named as joint_point.txt.
+        :param inputSize: dimensions of input RF signal heat maps.
+        :param GTSize: dimensions of output confidence heat map of key points.
+        :param clipFrame: clipFrame defines how many frames are included in
+        each video clip. This does not mean deSeqNetLoader provides grouped
+        data, but only single frames that is not concerned with clipFrame.
+        This parameters instruct the reorder process, which ensures the images
+        from the same video clip are grouped while reordering.
+        :param selectPoint: this is a list defining what kinds of key points
+        are wished to be predicted by DeSeqNet. Unselected key points will be
+        absent in the ground truth confidence maps.
+        :param rotate: defines whether to augment data through rotation.
+        :param shuffle: defines whether reorder the sequence of data in each
+        epoch.
+        '''
         self.anno = Annotation(dataDirectory)
         self.inputSize = inputSize
 
@@ -61,6 +79,12 @@ class deSeqNetLoader(Dataset):
                             'rank', 'rkne', 'rhip', 'lhip', 'lkne', 'lank', 'pelv',
                              'thrx', 'neck', 'head', 'rwri', 'relb', 'rsho', 'lsho',
                              'lelb', 'lwri']
+        self.rotate = rotate
+        self.shuffle = shuffle
+        self.frames = clipFrame
+
+        if shuffle:
+            self.reorder()
 
     def __getitem__(self, idx):
         '''
@@ -78,3 +102,6 @@ class deSeqNetLoader(Dataset):
 
     def __len__(self):
         return len(self.img_list)
+
+    def reorder(self):
+        return
