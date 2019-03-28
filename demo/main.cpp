@@ -3,7 +3,7 @@
 //
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>----------------------------
 #include <iostream>
 #include "walabot.hpp"
 using namespace cv;
@@ -18,5 +18,5 @@ int main()
 
     walabot test(10, 600, 10, -60, 60, 10, -60, 60, 10, true, 15);
     test.start();
-    test.union_scan("F:\\capturedata\\", 100);
+    test.union_scan("F:\\capture\\", 100);
 }
