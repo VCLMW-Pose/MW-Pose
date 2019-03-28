@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Mon Mar 13 23:55 2019
+    Last edit date   : Tue Mar 26 22:55 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -111,10 +111,10 @@ def analysis(data_dir, max_err):
     x = np.array(x)
     delays = np.array(delays)
     plt.title('Time Delay Scatter', fontsize=16, loc='left', color='g')
-    plt.xlim((-0.2, 1.2))
+    plt.xlim((0, 1))
     plt.ylim((0, max_err))
     plt.ylabel('Difference (s)', fontsize=10, color='b')
-    plt.scatter(x, delays, c='b', s=10)
+    plt.scatter(x, delays, c='b', s=2)
     plt.text(0.6, 0.0102, 'Totally matched data:%d' % matched, color='b')
     plt.savefig(data_dir + "/Scatter.png")
     plt.show()
@@ -181,8 +181,8 @@ def frame_analysis_anno(data_dir):
 
 
 if __name__ == "__main__":
-    matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01, False)
+    # matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01, False)
     analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
-    frame_analysis("/Users/midora/Desktop/MW-Pose/datacontainer")
+    # frame_analysis("/Users/midora/Desktop/MW-Pose/datacontainer")
     # frame_analysis_anno('/Users/midora/Desktop/MW-Pose/section_del')
     print("Completed!")
