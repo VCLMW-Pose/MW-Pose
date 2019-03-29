@@ -121,63 +121,82 @@ def loadWeight(model, weights, ptr):
     return ptr
 
 class bottleNeck(nn.Module):
-    def __init__(self, inChannel, outChannel, stride = 1, leaky = False):
+    def __init__(self, inChannel, outChannel, stride=1, leaky=False, dropout=0):
         super(bottleNeck, self).__init__()
         self.conv1 = nn.Conv2d(inChannel, outChannel//2, kernel_size=1, stride=stride, padding=0)
+        self.drop1 = nn.Dropout2d(dropout)
         self.bn1 = nn.BatchNorm2d(outChannel//2, eps=0.001, momentum=0.01)
         self.conv2 = nn.Conv2d(outChannel//2, outChannel//2, kernel_size=3, padding=1)
+        self.drop2 = nn.Dropout2d(dropout)
         self.bn2 = nn.BatchNorm2d(outChannel//2, eps=0.001, momentum=0.01)
         self.conv3 = nn.Conv2d(outChannel//2, outChannel, kernel_size=1, padding=0)
+        self.drop3 = nn.Dropout2d(dropout)
         self.bn3 = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
 
         if leaky:
-            self.relu = nn.LeakyReLU(inplace=True)
+            self.relu1 = nn.LeakyReLU(inplace=True)
+            self.relu2 = nn.LeakyReLU(inplace=True)
         else:
-            self.relu = nn.ReLU(inplace=True)
+            self.relu1 = nn.ReLU(inplace=True)
+            self.relu2 = nn.ReLU(inplace=True)
+
         self.skipConv = nn.Conv2d(inChannel, outChannel, kernel_size=1, padding=0)
+        self.skipdrop = nn.Dropout2d(dropout)
         self.skipBn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
         self.stride = stride
+
 
     def forward(self, x):
         residual = x
 
         out = self.conv1(x)
+        out = self.drop1(out)
         out = self.bn1(out)
-        out = self.relu(out)
+        out = self.relu1(out)
         out = self.conv2(out)
+        out = self.drop2(out)
         out = self.bn2(out)
-        out = self.relu(out)
+        out = self.relu2(out)
         out = self.conv3(out)
+        out = self.drop3(out)
         out = self.bn3(out)
 
         residual = self.skipConv(residual)
+        residual = self.skipdrop(residual)
         residual = self.skipBn(residual)
+
         out += residual
 
         return out
 
 class downSample2d(nn.Module):
-    def __init__(self, inChannel, outChannel, stride = 2, leaky = False):
+    def __init__(self, inChannel, outChannel, stride=2, leaky=False, dropout=0):
         super(downSample2d, self).__init__()
         self.conv = nn.Conv2d(inChannel, outChannel, kernel_size=3, stride=stride, padding=1)
+        self.drop = nn.Dropout2d(dropout)
         self.bn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
 
         if leaky:
             self.relu = nn.LeakyReLU(inplace=True)
         else:
             self.relu = nn.ReLU(inplace=True)
+
+        self.dropout = dropout
         self.stride = stride
     
     def forward(self, x):
         out = self.conv(x)
+        out = self.drop(out)
         out = self.bn(out)
         out = self.relu(out)
+
         return out
 
 class upSample2d(nn.Module):
-    def __init__(self, inChannel, outChannel, stride=2, leaky=False):
+    def __init__(self, inChannel, outChannel, stride=2, leaky=False, dropout=0):
         super(upSample2d, self).__init__()
         self.convTran = nn.ConvTranspose2d(inChannel, outChannel, kernel_size=3, stride=stride, padding=1)
+        self.drop = nn.Dropout2d(dropout)
         self.bn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
 
         if leaky:
@@ -188,6 +207,7 @@ class upSample2d(nn.Module):
 
     def forward(self, x):
         out = self.convTran(x)
+        out = self.drop(out)
         out = self.bn(out)
         out = self.relu(out)
         return out
@@ -420,8 +440,156 @@ class DeSeqNetFull(nn.Module):
     Tricks like weight decay and dropout are adopted to handle over fitting,
     since the model is trained on a tiny dataset.
     '''
+    def __init__(self, num_hid, num_rnn, leaky=False, rnn_type="GRU", concat_num=0, dropout=0):
+        '''
+        :param num_hid: number of hidden neurons within the rnn layer. The
+        scale of characteristic vector through the RNNs are 1024 -> num_hid.
+        :param num_rnn: number of RNN layers that process the characteristic
+        vector. E.g. num_rnn = 3, the forward propagation is:
+        (1x1x1024) -> (1x1xnum_hid) -> (1x1x1024) ->
+        :param leaky:
+        :param rnn_type:
+        :param concat_num:
+        :param weight_decay:
+        :param dropout:
+        '''
+        self.num_hid = num_hid
+        self.num_rnn = num_rnn
+        self.leaky = leaky
+        self.rnn_type = rnn_type
+        self.concat_num = concat_num
+        self.dropout = dropout
+
+        self.encoder = self.buildEecoder()
+        self.linear = nn.Linear(960, 1024)
+        self.dropout = nn.Dropout(dropout)
+        if rnn_type == "LSTM":
+            self.rnns = [nn.LSTM(1024, num_hid if i != num_rnn - 1 else 1024) for i in range(num_rnn)]
+            self.linears = [nn.Linear(num_hid)]
+
+        elif rnn_type == "GRU":
+            self.rnns = [nn.GRU(1024, num_hid if i != num_rnn - 1 else 1024) for i in range(num_rnn)]
+
+        self.decoder = self.buildDecoder()
+
+    def forward(self):
+
+        return
+
+    def buildRNN(self):
+        layer = []
+
+        return nn.ModuleList(layer)
+
+    def buildEncoder(self):
+        layer = []
+
+        # initial feature extraction layers
+        layer.append(nn.Conv2d(60, 60, kernel_size=1, stride=1, padding=0))
+        layer.append(nn.Dropout2d(p=self.dropout))
+        layer.append(nn.BatchNorm2d(60, eps=0.001, momentum=0.01))
+        if self.leaky:
+            layer.append(nn.LeakyReLU(inplace=True))
+        else:
+            layer.append(nn.ReLU(inplace=True))
+
+        # first two bottleneck blocks
+        layer.append(bottleNeck(60, 60, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(60, 60, 1, self.leaky, self.dropout))
+
+        # The 13x13x60 input go through 2 downsample layers and reach the dimension
+        # of 2x2x8. Then align the tenser elements and get a characteristic vector.
+        layer.append(downSample2d(60, 120, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(120, 240, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(240, 120, 1, self.leaky, self.dropout))
+
+        # Shortcut layer, concatenate intermediate result.
+        layer.append(downSample2d(240, 120, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(120, 240, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(240, 120, 1, self.leaky, self.dropout))
+
+        # Down sample layer 3 and another concatenate intermediate result.
+        layer.append(downSample2d(240, 120, 2, self.leaky, self.dropout))
+
+        return nn.ModuleList(layer)
+
+    def buildDecoder(self):
+        # The characteristic vector is transformed to 2x2x256. The dimension of
+        # confidence map predicted by decoder is 128x128x16. Which requires three
+        # times of up sample procedure.
+        layer = []
+
+        # First upsample layer
+        layer.append(upSample2d(256, 128, 2, self.leaky, self.dropout))
+        layer.append(nn.Conv2d(128, 128, kernel_size=1, stride=1, padding=0))
+        layer.append(nn.Dropout2d(p=self.dropout))
+        layer.append(nn.BatchNorm2d(128, eps=0.001, momentum=0.01))
+        if self.leaky:
+            layer.append(nn.LeakyReLU(inplace=True))
+        else:
+            layer.append(nn.ReLU(inplace=True))
+
+        # Short cut layer 1
+        layer.append(bottleNeck(128, 64, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(64, 64, 1, self.leaky, self.dropout))
+
+        # Dimension: 8x8x128
+        layer.append(upSample2d(128, 64, 2, self.leaky, self.dropout))
+        # Short cut layer 2
+        layer.append(bottleNeck(64, 32, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(32, 32, 1, self.leaky, self.dropout))
+
+        # Upsample layer, dimension: 16x16x256
+        layer.append(upSample2d(64, 32, 2, self.leaky, self.dropout))
+        # Short cut layer 3
+        layer.append(bottleNeck(32, 16, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(16, 16, 1, self.leaky, self.dropout))
+
+        # Upsample layer, dimension: 32x32x32
+        layer.append(upSample2d(32, 32, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(32, 24, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(24, 16, 1, self.leaky, self.dropout))
+
+        return nn.ModuleList(layer)
+
+    def saveWeight(self):
+        return
+
+    def loadWeight(self):
+        return
 
 class QDeSeqNetFull(nn.Module):
     '''
-
+    QDeSeqNetFull improves the sequential processing capability of DeSeqNet
+    by adapting Quasi-Recurrent Neural Network as the basic build block.
+    It takes the row RF signal as input but not the projection heat maps.
     '''
+
+    def __init__(self, num_hid, num_rnn, leaky=False, rnn_type="GRU", concat_num=0,
+                 weight_decay=0, dropout=0):
+        '''
+
+        :param num_hid:
+        :param num_rnn:
+        :param leaky:
+        :param rnn_type:
+        :param concat_num:
+        :param weight_decay:
+        :param dropout:
+        '''
+        return
+
+    def forward(self):
+        return
+
+    def buildEncoder(self):
+        return
+
+    def buildDecoder(self):
+        return
+
+    def saveWeight(self):
+        return
+
+    def loadWeight(self):
+        return
