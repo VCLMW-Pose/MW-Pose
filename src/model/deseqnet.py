@@ -442,9 +442,11 @@ class DeSeqNetFull(nn.Module):
     '''
     def __init__(self, num_hid, num_rnn, leaky=False, rnn_type="GRU", concat_num=0, dropout=0):
         '''
-
-        :param num_hid:
-        :param num_rnn:
+        :param num_hid: number of hidden neurons within the rnn layer. The
+        scale of characteristic vector through the RNNs are 1024 -> num_hid.
+        :param num_rnn: number of RNN layers that process the characteristic
+        vector. E.g. num_rnn = 3, the forward propagation is:
+        (1x1x1024) -> (1x1xnum_hid) -> (1x1x1024) ->
         :param leaky:
         :param rnn_type:
         :param concat_num:
@@ -459,8 +461,15 @@ class DeSeqNetFull(nn.Module):
         self.dropout = dropout
 
         self.encoder = self.buildEecoder()
+        self.linear = nn.Linear(960, 1024)
+        self.dropout = nn.Dropout(dropout)
+        if rnn_type == "LSTM":
+            self.rnns = [nn.LSTM(1024, num_hid if i != num_rnn - 1 else 1024) for i in range(num_rnn)]
+
+        elif rnn_type == "GRU":
+            self.rnns = [nn.GRU(1024, num_hid if i != num_rnn - 1 else 1024) for i in range(num_rnn)]
+
         self.decoder = self.buildDecoder()
-        return
 
     def forward(self):
 
