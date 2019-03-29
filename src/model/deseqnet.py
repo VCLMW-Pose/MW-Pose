@@ -465,6 +465,7 @@ class DeSeqNetFull(nn.Module):
         self.dropout = nn.Dropout(dropout)
         if rnn_type == "LSTM":
             self.rnns = [nn.LSTM(1024, num_hid if i != num_rnn - 1 else 1024) for i in range(num_rnn)]
+            self.linears = [nn.Linear(num_hid)]
 
         elif rnn_type == "GRU":
             self.rnns = [nn.GRU(1024, num_hid if i != num_rnn - 1 else 1024) for i in range(num_rnn)]
@@ -474,6 +475,11 @@ class DeSeqNetFull(nn.Module):
     def forward(self):
 
         return
+
+    def buildRNN(self):
+        layer = []
+
+        return nn.ModuleList(layer)
 
     def buildEncoder(self):
         layer = []
