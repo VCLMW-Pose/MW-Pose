@@ -458,7 +458,8 @@ class DeSeqNetFull(nn.Module):
         self.concat_num = concat_num
         self.dropout = dropout
 
-        self.encoder = self.buildDecoder()
+        self.encoder = self.buildEecoder()
+        self.decoder = self.buildDecoder()
         return
 
     def forward(self):
@@ -504,33 +505,37 @@ class DeSeqNetFull(nn.Module):
         layer = []
 
         # First upsample layer
-        layer.append(upSample2d(256, 256, 2, self.leaky, self.dropout))
-        layer.append(nn.Conv2d(256, 256, kernel_size=1, stride=1, padding=0))
+        layer.append(upSample2d(256, 128, 2, self.leaky, self.dropout))
+        layer.append(nn.Conv2d(128, 128, kernel_size=1, stride=1, padding=0))
         layer.append(nn.Dropout2d(p=self.dropout))
-        layer.append(nn.BatchNorm2d(256, eps=0.001, momentum=0.01))
+        layer.append(nn.BatchNorm2d(128, eps=0.001, momentum=0.01))
         if self.leaky:
             layer.append(nn.LeakyReLU(inplace=True))
         else:
             layer.append(nn.ReLU(inplace=True))
 
-        # Dimension: 8x8x256
-        layer.append(upSample2d(256, 128, 2, self.leaky, self.dropout))
-        layer.append(bottleNeck(128, 256, 1, self.leaky, self.dropout))
-        layer.append(bottleNeck(256, 128, 1, self.leaky, self.dropout))
+        # Short cut layer 1
+        layer.append(bottleNeck(128, 64, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(64, 64, 1, self.leaky, self.dropout))
 
-        # Upsample layer and first shortcut layer, dimension: 16x16x256
-        layer.append(upSample2d(256, 128, 2, self.leaky, self.dropout))
-        layer.append(bottleNeck(128, 128, 1, self.leaky, self.dropout))
-        layer.append(bottleNeck(128, 128, 1, self.leaky, self.dropout))
+        # Dimension: 8x8x128
+        layer.append(upSample2d(128, 64, 2, self.leaky, self.dropout))
+        # Short cut layer 2
+        layer.append(bottleNeck(64, 32, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(32, 32, 1, self.leaky, self.dropout))
 
-        # second shortcut layer
-        layer.append(upSample2d(256, 128, 2, self.leaky, self.dropout))
-        layer.append(bottleNeck(128, 128, 1, self.leaky, self.dropout))
-        layer.append(bottleNeck(128, 256, 1, self.leaky, self.dropout))
+        # Upsample layer, dimension: 16x16x256
+        layer.append(upSample2d(64, 32, 2, self.leaky, self.dropout))
+        # Short cut layer 3
+        layer.append(bottleNeck(32, 16, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(16, 16, 1, self.leaky, self.dropout))
 
+        # Upsample layer, dimension: 32x32x32
+        layer.append(upSample2d(32, 32, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(32, 24, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(24, 16, 1, self.leaky, self.dropout))
 
-
-        return
+        return nn.ModuleList(layer)
 
     def saveWeight(self):
         return
