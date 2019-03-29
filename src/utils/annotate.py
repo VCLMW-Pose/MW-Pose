@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Wed Mar 27 00:37 2019
+    Last edit date   : Fri Mar 29 23:03 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 from random import random, seed
+import  shutil
 
 
 class Annotation:
@@ -256,6 +257,7 @@ def annotate(dir, mode):
         cv2.imshow(anno.window_name, img)
         while True:
             if cv2.waitKey(10) & 0xFF == ord('\r'):
+                anno.revise()
                 break
     anno.revise()
     cv2.destroyAllWindows()
@@ -264,8 +266,20 @@ def annotate(dir, mode):
     cv2.waitKey(1)
     cv2.waitKey(1)
 
+def move_anno(anno_dir, dir):
+    if os.path.exists(anno_dir):
+        for root, subdirs, _ in os.walk(anno_dir):
+            for subdir in subdirs:
+                src = os.path.join(root, subdir, 'joint_point.txt')
+                dst = os.path.join(dir, subdir)
+                if os.path.exists(src) and os.path.exists(dst):
+                    shutil.copy(src, dst)
+
+
 
 if __name__ == "__main__":
-    dir = '/Users/midora/Desktop/MW-Pose/datacontainer/_7.0'
-    annotate(dir, 'drag')
+    anno_dir = '/Users/midora/Desktop/MW-Pose/section_del'
+    dir = '/Users/midora/Desktop/MW-Pose/datacontainer'
+    move_anno(anno_dir, dir)
+    # annotate(dir, 'drag')
     print('Completed!')
