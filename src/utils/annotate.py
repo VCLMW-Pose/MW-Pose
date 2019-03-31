@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 from random import random, seed
-import  shutil
+import shutil
 
 
 class Annotation:
@@ -257,6 +257,7 @@ def annotate(dir, mode):
         cv2.imshow(anno.window_name, img)
         while True:
             if cv2.waitKey(10) & 0xFF == ord('\r'):
+                anno.selected = False
                 anno.revise()
                 break
     anno.revise()
@@ -266,7 +267,13 @@ def annotate(dir, mode):
     cv2.waitKey(1)
     cv2.waitKey(1)
 
+
 def move_anno(anno_dir, dir):
+    """
+    Args:
+        anno_dir: Top folder of pre-annotated dataset with annotation file
+        dir: Top folder of dataset waiting for annotating.
+    """
     if os.path.exists(anno_dir):
         for root, subdirs, _ in os.walk(anno_dir):
             for subdir in subdirs:
@@ -276,10 +283,9 @@ def move_anno(anno_dir, dir):
                     shutil.copy(src, dst)
 
 
-
 if __name__ == "__main__":
     anno_dir = '/Users/midora/Desktop/MW-Pose/section_del'
-    dir = '/Users/midora/Desktop/MW-Pose/datacontainer'
+    dir = '/Users/midora/Desktop/MW-Pose/datacontainer/_7.0'
     move_anno(anno_dir, dir)
     # annotate(dir, 'drag')
     print('Completed!')
