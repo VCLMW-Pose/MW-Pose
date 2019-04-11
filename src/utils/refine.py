@@ -242,8 +242,8 @@ def refine(dir, mode):
         mode:   (string) decide whether to move or click to change the joint point
     """
     anno = AnnotationLoader(dir)
-    name = dir.split('/')[-1]
-    cv2.namedWindow(name)
+    anno.window_name = dir.split('/')[-1]
+    cv2.namedWindow(anno.window_name)
     for idx, anno.cur_file in enumerate(anno.data_files):
         # if anno.data_files[idx]
         # anno.window_name = dir.split('/')[-1] + '/' + anno.cur_file
@@ -259,7 +259,7 @@ def refine(dir, mode):
         else:
             print("No mode named:" + mode)
         cv2.startWindowThread()
-        cv2.imshow(name, img)
+        cv2.imshow(anno.window_name, img)
         while True:
             if cv2.waitKey(10) & 0xFF == ord('\r'):
                 anno.selected = False
