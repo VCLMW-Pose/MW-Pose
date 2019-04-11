@@ -242,13 +242,15 @@ def refine(dir, mode):
         mode:   (string) decide whether to move or click to change the joint point
     """
     anno = AnnotationLoader(dir)
+    name = dir.split('/')[-1]
+    cv2.namedWindow(name)
     for idx, anno.cur_file in enumerate(anno.data_files):
         # if anno.data_files[idx]
-        anno.window_name = dir.split('/')[-1] + '/' + anno.cur_file
+        # anno.window_name = dir.split('/')[-1] + '/' + anno.cur_file
         anno.img = anno.lood_img(idx)
         # anno.img -= anno.img #  To show black canvas
         img = anno.img.copy()
-        cv2.namedWindow(anno.window_name)
+        # cv2.namedWindow(anno.window_name)
         anno.plot_skeleton(img, anno.cur_file, 2)
         if mode == 'drag':
             cv2.setMouseCallback(anno.window_name, anno.MouseCallback_drag)
@@ -257,7 +259,7 @@ def refine(dir, mode):
         else:
             print("No mode named:" + mode)
         cv2.startWindowThread()
-        cv2.imshow(anno.window_name, img)
+        cv2.imshow(name, img)
         while True:
             if cv2.waitKey(10) & 0xFF == ord('\r'):
                 anno.selected = False
@@ -286,7 +288,7 @@ def move_anno(anno_dir, dir):
                     shutil.copy(src, dst)
 
 def radar_out(dir):
-    anno = Annotation(dir)
+    anno = AnnotationLoader(dir)
     black = np.zeros((360, 640, 3))
     for idx, anno.cur_file in enumerate(anno.data_files):
         cv2.namedWindow('Black')
@@ -300,8 +302,8 @@ def radar_out(dir):
 
 if __name__ == "__main__":
     anno_dir = '/Users/midora/Desktop/MW-Pose/section_del'
-    dir = '/Users/midora/Desktop/MW-Pose/datacontainer/_12.0'
+    dir = 'D:/Documents/Source/MW-Pose/folder/datacontainer/_7.0'
     # move_anno(anno_dir, dir)
-    refine(dir, 'click')
+    refine(dir, 'drag')
     print('Completed!')
 
