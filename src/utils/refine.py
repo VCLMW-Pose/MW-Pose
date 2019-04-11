@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Fri Mar 29 23:03 2019
+    Last edit date   : Fri Mar 31 22:30 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -18,8 +18,9 @@ from random import random, seed
 import shutil
 
 
-class Annotation:
+class AnnotationLoader:
     """
+    This class is utilized for one group of data
     Structure of annotation:
         dict{
             key: file name (e.g. '1551601527845.jpg')
@@ -234,16 +235,18 @@ class Annotation:
                     cv2.imshow(self.window_name, img)
 
 
-def annotate(dir, mode):
+def refine(dir, mode):
     """
     Args:
         dir:    (string) directory of one group of data
         mode:   (string) decide whether to move or click to change the joint point
     """
-    anno = Annotation(dir)
+    anno = AnnotationLoader(dir)
     for idx, anno.cur_file in enumerate(anno.data_files):
+        # if anno.data_files[idx]
         anno.window_name = dir.split('/')[-1] + '/' + anno.cur_file
         anno.img = anno.lood_img(idx)
+        # anno.img -= anno.img #  To show black canvas
         img = anno.img.copy()
         cv2.namedWindow(anno.window_name)
         anno.plot_skeleton(img, anno.cur_file, 2)
@@ -282,10 +285,23 @@ def move_anno(anno_dir, dir):
                 if os.path.exists(src) and os.path.exists(dst):
                     shutil.copy(src, dst)
 
+def radar_out(dir):
+    anno = Annotation(dir)
+    black = np.zeros((360, 640, 3))
+    for idx, anno.cur_file in enumerate(anno.data_files):
+        cv2.namedWindow('Black')
+        anno.plot_skeleton(black, anno.cur_file, 2)
+        cv2.startWindowThread()
+        cv2.imshow('Black', black)
+        while True:
+            if cv2.waitKey(10) & 0xFF == ord('\r'):
+                break
+
 
 if __name__ == "__main__":
     anno_dir = '/Users/midora/Desktop/MW-Pose/section_del'
-    dir = '/Users/midora/Desktop/MW-Pose/datacontainer/_7.0'
-    move_anno(anno_dir, dir)
-    # annotate(dir, 'drag')
+    dir = '/Users/midora/Desktop/MW-Pose/datacontainer/_12.0'
+    # move_anno(anno_dir, dir)
+    refine(dir, 'click')
     print('Completed!')
+
