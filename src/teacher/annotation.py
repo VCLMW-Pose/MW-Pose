@@ -45,7 +45,7 @@ class Annotator():
                     y = str(output[i][1])
                     f.writelines([str(i+1), '(', x, ', ', y, ') '])
                 f.writelines(['\n'])
-
+        self.distribute()
 
     def distribute(self):
         for root, dirs, _ in os.walk(self.dir):
