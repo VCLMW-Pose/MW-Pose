@@ -23,7 +23,7 @@ import argparse
 import os
 import os.path
 import torch
-from src.model.darknet import darknet
+from src.teacher.model.darknet import darknet
 import pickle as pkl
 import pandas as pd
 import random

@@ -11,8 +11,8 @@ South East University Automation College, 211189 Nanjing China
 
 from src.teacher.utils import *
 from src.teacher.detect import detector
-from estimate import Estimator
-import src.teacher.model
+from src.teacher.model import *
+# from demo_hg import *
 import torch
 import cv2
 import time
@@ -22,15 +22,16 @@ import time
 class HPE():
     def __init__(self):
         # Deploy darknet53 model on cooresponding device
-        yolov3 = darknet("config/yolov3.cfg", 80)
-        yolov3.load_weight("config/yolov3.weights")
+        yolov3 = darknet('D:/Documents/Source/MW-Pose/config/yolov3.cfg', 80)
+        yolov3.load_weight("D:/Documents/Source/MW-Pose/config/yolov3.weights")
         yolov3.eval()
 
         # Deploy stacked hourglass model
-        stackedhourglass = demo.__dict__['hg'](num_stacks=2, num_blocks=1, num_classes=16)
+        # stackedhourglass = demo_hg.__dict__['hg'](num_stacks=2, num_blocks=1, num_classes=16)
+        stackedhourglass = hg(num_stacks=2, num_blocks=1, num_classes=16)
         stackedhourglass = torch.nn.DataParallel(stackedhourglass)
         stackedhourglass.eval()
-        checkpoint = torch.load('config/hg_s2_b1/model_best.pth.tar')
+        checkpoint = torch.load('D:/Documents/Source/MW-Pose/config/hg_s2_b1/model_best.pth.tar')
         stackedhourglass.load_state_dict(checkpoint['state_dict'])
 
         cuda = torch.cuda.is_available()
@@ -386,7 +387,13 @@ class HPE():
 
         # Get output heatmaps
         output = self.estimator(canvas)[1][0]
-
+        # op_np = np.zeros((16, 2), dtype=int)
+        # for part in range(0, 16):
+        #     part_output = output[0, part + 16, :, :]
+        #     if part_output.max() != 0:  # and part_output.max() >= thresh:
+        #         op_np[part][0] = np.where(part_output == part_output.max())[0][0]
+        #         op_np[part][1] = np.where(part_output == part_output.max())[1][0]
+        output = output.cpu()
         for key_point in output:
             if key_point.max() > 0.05:
                 # Key point coordinate
@@ -405,10 +412,9 @@ class HPE():
             else:
                 coord.append((0, 0))
 
-        draw(out_img, coord, 2)
+        # draw(out_img, coord, 2)
 
-        cv2.imshow("target", out_img)
-        print(end - begin)
+        # cv2.imshow("target", out_img)
         return coord
 
 

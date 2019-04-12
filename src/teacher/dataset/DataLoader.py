@@ -25,7 +25,7 @@ class Loader():
         """
         self.dir = dir
         self.dataList = []
-        self.__traverse()
+        self.__traverse__()
         print('All %d files are loaded successfully!' % len(self))
 
     def __len__(self):
@@ -37,16 +37,16 @@ class Loader():
             item: Index
             return: (nd.array) RGB Image
         """
-        if item >= self.dataList:
-            print('Index out of range!')
+        # if item >= len(self.dataList):
+        #     print('Index out of range!')
         return self.dataList[item], cv2.imread(self.dataList[item])
 
-    def __traverse(self):
+    def __traverse__(self):
         last = 0
         for root, dirs, files in os.walk(self.dir):
             for file in files:
-                if file[-4:] == '.jpg':
-                    new = os.path.join(root, root.split('/')[-1] + '.jpg')
+                if file[-4:] == '.jpg' and file[0] != '.':
+                    new = os.path.join(root, root.split('\\')[-1] + '.jpg')
                     old = os.path.join(root, file)
                     if new != old:
                         os.rename(old, new)
@@ -57,4 +57,7 @@ class Loader():
 
 
 if __name__ == '__main__':
-    loader = Loader('/Users/midora/Desktop/MW-Pose/test')
+    for root, dirs, files, in os.walk('D:\\Documents\\Source\\MW-Pose\\test'):
+        for file in files:
+            print(root + '\\' + file)
+    # loader = Loader('/Users/midora/Desktop/MW-Pose/test')

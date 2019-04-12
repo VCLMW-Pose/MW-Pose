@@ -302,7 +302,7 @@ def radar_out(dir):
 
 if __name__ == "__main__":
     anno_dir = '/Users/midora/Desktop/MW-Pose/section_del'
-    dir = 'D:/Documents/Source/MW-Pose/folder/datacontainer/_7.0'
+    dir = 'D:/Documents/Source/MW-Pose/test/_12.0'
     # move_anno(anno_dir, dir)
     refine(dir, 'drag')
     print('Completed!')
