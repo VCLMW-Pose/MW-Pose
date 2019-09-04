@@ -27,11 +27,21 @@ class Annotator():
         self.loader = Loader(dir)
         self.estimator = HPE()
 
-    def annotate(self):
+    def annotate(self, mode):
+        if os.path.exists(os.path.join(self.dir, 'annotation_all.txt')):
+            os.remove(os.path.join(self.dir, 'annotation_all.txt'))
         for i, (fname, img) in enumerate(self.loader):
-            output = self.estimator.img_annotate(img)
-            self.save(fname, output)
+            if mode == 'single':
+                output = self.estimator.img_annotate(img)
+                self.save(fname, output)
+            elif mode == 'multi':
+                output = self.estimator.img_annotate_multi(img)
+                self.save(fname, output)
+            else:
+                print('Mode error!')
+
             print('%d image have been annotated.' % i)
+        self.distribute()
 
 
 
@@ -45,7 +55,7 @@ class Annotator():
                     y = str(output[i][1])
                     f.writelines([str(i+1), '(', x, ', ', y, ') '])
                 f.writelines(['\n'])
-        self.distribute()
+
 
     def distribute(self):
         for root, dirs, _ in os.walk(self.dir):
@@ -70,5 +80,5 @@ class Annotator():
 
 if __name__ == '__main__':
     annotator = Annotator('D:\\Documents\\Source\\MW-Pose\\test')
-    # annotator.annotate()
+    # annotator.annotate('multi')
     annotator.distribute()

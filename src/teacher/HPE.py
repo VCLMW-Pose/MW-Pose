@@ -262,104 +262,7 @@ class HPE():
 
         cap.release()
 
-    def pikachu(self, pikachu_dir='res/pikachu.jpg'):
-        pikachu = cv2.imread(pikachu_dir)
-        cap = cv2.VideoCapture(0)
 
-        while 1:
-            # ret, frame = cap.read()
-            frame = cv2.imread('data/samples/07.jpg')
-            out_img = frame.copy()
-            try:
-                # Geting dimensions, normalization and transforming
-                frame_h, frame_w = frame.shape[0], frame.shape[1]
-
-                # Making prediction
-                prediction = self.detector.detect(frame)
-
-                # Only person class proposals are needed
-                pred_bbox = []
-                for prediction_ in prediction:
-                    if prediction_[6] == 0:
-                        w = prediction_[2] - prediction_[0]
-                        h = prediction_[3] - prediction_[1]
-                        prediction_[0] -= 0.2 * w
-                        prediction_[1] -= 0.2 * h
-                        prediction_[2] += 0.2 * w
-                        prediction_[3] += 0.2 * h
-                        pred_bbox.append(prediction_[:4])
-
-                # Prepare container for key point coordinates
-                estimation = []
-
-                # Get estimation
-                for pred_bbox_ in pred_bbox:
-                    pred_bbox_ = list(map(int, pred_bbox_))
-
-                    # Coordinates shall not exceed the boundary of origin image
-                    for i in range(2):
-                        pred_bbox_[2 * i] = pred_bbox_[2 * i] if pred_bbox_[2 * i] >= 0 else 0
-                        pred_bbox_[2 * i] = pred_bbox_[2 * i] if pred_bbox_[2 * i] <= frame_w else frame_w
-
-                    for i in range(2):
-                        pred_bbox_[2 * i + 1] = pred_bbox_[2 * i + 1] if pred_bbox_[2 * i + 1] >= 0 else 0
-                        pred_bbox_[2 * i + 1] = pred_bbox_[2 * i + 1] if pred_bbox_[2 * i + 1] <= frame_w else frame_w
-
-                    # Crop bounding-box
-                    img = frame[pred_bbox_[1]:pred_bbox_[3], pred_bbox_[0]:pred_bbox_[2], :]
-                    img_h, img_w = img.shape[0], img.shape[1]
-
-                    # Resize and padding
-                    new_h = int(img_h * min(256 / img_h, 256 / img_w))
-                    new_w = int(img_w * min(256 / img_h, 256 / img_w))
-                    pad_h = (256 - new_h) // 2
-                    pad_w = (256 - new_w) // 2
-
-                    img_ = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
-                    canvas = np.full((256, 256, 3), 128)
-                    canvas[(256 - new_h) // 2:(256 - new_h) // 2 + new_h, (256 - new_w) // 2:(256 - new_w) // 2 + new_w,
-                    :] = img_
-
-                    # Normalization
-                    canvas = torch.FloatTensor(canvas[:, :, ::-1].transpose((2, 0, 1)).copy()).div(255.).unsqueeze(0)
-
-                    # Get output heatmaps
-                    output = self.estimator(canvas)[1][0]
-
-                    coord = []
-                    for key_point in output:
-                        if key_point.max() > 0.05:
-                            # Key point coordinate
-                            x, y = map(float, (np.where(key_point == key_point.max())))
-                            x *= 4
-                            y *= 4
-
-                            # Transfer to original scale
-                            x -= pad_h
-                            y -= pad_w
-                            x *= img_h / new_h
-                            y *= img_w / new_w
-                            x += pred_bbox_[1]
-                            y += pred_bbox_[0]
-
-                            coord.append(tuple(map(int, (y, x))))
-                        else:
-                            coord.append((0, 0))
-
-                    insert_img(out_img, pikachu, 'head', coord)
-                    # draw(out_img, coord, 2)
-
-                # Press 'q' to exit
-                cv2.imshow("target", out_img)
-                if cv2.waitKey(100) & 0xFF == ord('q'):
-                    break
-
-            except:
-                cv2.imshow("target", out_img)
-                if cv2.waitKey(100) & 0xFF == ord('q'):
-                    break
-
-        cap.release()
                     
     def img_annotate(self, frame):
 
@@ -416,6 +319,85 @@ class HPE():
 
         # cv2.imshow("target", out_img)
         return coord
+
+    def img_annotate_multi(self, frame):
+        # Geting dimensions, normalization and transforming
+        frame_h, frame_w = frame.shape[0], frame.shape[1]
+
+        begin = time.clock()
+        # Making prediction
+        prediction = self.detector.detect(frame)
+
+        # Only person class proposals are needed
+        pred_bbox = []
+        for prediction_ in prediction:
+            if prediction_[6] == 0:
+                w = prediction_[2] - prediction_[0]
+                h = prediction_[3] - prediction_[1]
+                prediction_[0] -= 0.2 * w
+                prediction_[1] -= 0.2 * h
+                prediction_[2] += 0.2 * w
+                prediction_[3] += 0.2 * h
+                pred_bbox.append(prediction_[:4])
+
+        # Prepare container for key point coordinates
+        estimation = []
+
+        # Get estimation
+        for pred_bbox_ in pred_bbox:
+            pred_bbox_ = list(map(int, pred_bbox_))
+
+            # Coordinates shall not exceed the boundary of origin image
+            for i in range(2):
+                pred_bbox_[2 * i] = pred_bbox_[2 * i] if pred_bbox_[2 * i] >= 0 else 0
+                pred_bbox_[2 * i] = pred_bbox_[2 * i] if pred_bbox_[2 * i] <= frame_w else frame_w
+
+            for i in range(2):
+                pred_bbox_[2 * i + 1] = pred_bbox_[2 * i + 1] if pred_bbox_[2 * i + 1] >= 0 else 0
+                pred_bbox_[2 * i + 1] = pred_bbox_[2 * i + 1] if pred_bbox_[2 * i + 1] <= frame_w else frame_w
+
+            # Crop bounding-box
+            img = frame[pred_bbox_[1]:pred_bbox_[3], pred_bbox_[0]:pred_bbox_[2], :]
+            img_h, img_w = img.shape[0], img.shape[1]
+
+            # Resize and padding
+            new_h = int(img_h * min(256 / img_h, 256 / img_w))
+            new_w = int(img_w * min(256 / img_h, 256 / img_w))
+            pad_h = (256 - new_h) // 2
+            pad_w = (256 - new_w) // 2
+
+            img_ = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+            canvas = np.full((256, 256, 3), 128)
+            canvas[(256 - new_h) // 2:(256 - new_h) // 2 + new_h, (256 - new_w) // 2:(256 - new_w) // 2 + new_w,
+            :] = img_
+
+            # Normalization
+            canvas = torch.FloatTensor(canvas[:, :, ::-1].transpose((2, 0, 1)).copy()).div(255.).unsqueeze(0)
+
+            # Get output heatmaps
+            output = self.estimator(canvas)[1][0]
+            output = output.cpu()
+            coord = []
+            for key_point in output:
+                if key_point.max() > 0.05:
+                    # Key point coordinate
+                    x, y = map(float, (np.where(key_point == key_point.max())))
+                    x *= 4
+                    y *= 4
+
+                    # Transfer to original scale
+                    x -= pad_h
+                    y -= pad_w
+                    x *= img_h / new_h
+                    y *= img_w / new_w
+                    x += pred_bbox_[1]
+                    y += pred_bbox_[0]
+
+                    coord.append(tuple(map(int, (y, x))))
+                else:
+                    coord.append((0, 0))
+            return coord
+
 
 
 

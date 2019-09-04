@@ -18,7 +18,7 @@ from __future__ import division
 import time
 import numpy as np
 import cv2
-from src.utils import *
+from src.teacher.utils import *
 import argparse
 import os
 import os.path
