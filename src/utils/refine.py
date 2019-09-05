@@ -299,6 +299,24 @@ def radar_out(dir):
             if cv2.waitKey(10) & 0xFF == ord('\r'):
                 break
 
+def distribute(dir):
+    for root, dirs, _ in os.walk(dir):
+        if root == dir:
+            for dir in dirs:
+                if os.path.exists(os.path.join(root, dir, 'joint_point.txt')):
+                    os.remove(os.path.join(root, dir, 'joint_point.txt'))
+    with open(os.path.join(dir, 'annotation_all.txt'), 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            line = line.split(' : ')
+            name = line[0]
+            point = line[1]
+            name = name.split('\\')
+            folder = name[0]
+            jpg = name[1]
+            with open(os.path.join(dir, folder, 'joint_point.txt'), 'a')as subf:
+                subf.write(jpg + ' : ' + point)
+    print('Distribution completed!')
 
 if __name__ == "__main__":
     anno_dir = '/Users/midora/Desktop/MW-Pose/section_del'
