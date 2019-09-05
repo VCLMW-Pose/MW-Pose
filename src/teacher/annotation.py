@@ -80,5 +80,5 @@ class Annotator():
 
 if __name__ == '__main__':
     annotator = Annotator('D:\\Documents\\Source\\MW-Pose\\test')
-    # annotator.annotate('multi')
-    annotator.distribute()
+    annotator.annotate('multi')
+    # annotator.distribute()
