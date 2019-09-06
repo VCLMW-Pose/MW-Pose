@@ -1,9 +1,9 @@
 '''
-    Created on Mon Mar 25 11:30 2019
+    Created on Thu Sep 5 22:46 2019
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Fri Mar 31 22:30 2019
+    Last edit date   :
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -44,28 +44,31 @@ class AnnotationLoader:
             self.anno_file = os.path.join(dir, 'joint_point.txt')
         self.annotation = {}
         self.parts = ['None',  # To be compatible with the pre-annotation
-                      'rank', 'rkne', 'rhip',
-                      'lhip', 'lkne', 'lank',
-                      'pelv', 'thrx', 'neck', 'head',
-                      'rwri', 'relb', 'rsho',
-                      'lsho', 'lelb', 'lwri']
+                      'nose', 'neck', 'rShoulder',
+                      'rElbow', 'rWrist', 'lShoulder',
+                      'lElbow', 'lWrist', 'rHip', 'rKnee',
+                      'rAnkle', 'lHip', 'lKnee', 'lAnkle',
+                      'rEye', 'lEye', 'rEar', 'lEar']
         """
-        rank: right ankle
-        rkne: right knee
-        rhip: right hip
-        lhip: left hip
-        lkne: left knee
-        lank: left ankle
-        pelv: pelvis
-        thrx: thorax
-        neck: neck
-        head: head
-        rwri: right wrist
-        relb: right elbow
-        rsho: right shoulder
-        lsho: left shoulder
-        lelb: left elbow
-        lwri: left wrist
+        Value check list:(Serial number be plussed one.)
+                                    [0]: nose
+                                    [1]: neck
+                                    [2]: rShoulder
+                                    [3]: rElbow
+                                    [4]: rWrist
+                                    [5]: lShoulder
+                                    [6]: lElbow
+                                    [7]: lWrist
+                                    [8]: rHip
+                                    [9]: rKnee
+                                    [10]: rAnkle
+                                    [11]: lHip
+                                    [12]: lKnee
+                                    [13]: lAnkle
+                                    [14]: rEye
+                                    [15]: lEye
+                                    [16]: rEar
+                                    [17]: lEar
         """
         self.__load_annofile()
         self.data_files = list(self.annotation.keys())
@@ -91,17 +94,19 @@ class AnnotationLoader:
         To load pre-annotation.
         Do not care about the file architecture
         """
-        with open(self.anno_file) as f:
+        with open(self.anno_file, 'r') as f:
             lines = f.readlines()
         for line in lines:
             line = line.split(' : ')
             name = line[0]
-            joints = line[1].rstrip(') \n').split(') ')
+            peoplenum = line[1][0]
+            line = line[1][2:]
             dict_joints = {}
+            joints = line.rstrip(') \n').split(') ')
             for joint in joints:
                 joint = joint.split('(')
                 str_coor = joint[1].split(', ')
-                dict_joints[self.parts[int(joint[0])]] = [int(str_coor[0]), int(str_coor[1])]
+                dict_joints[self.parts[int(joint[0])]] = [float(str_coor[0]), float(str_coor[1])]
             self.annotation[name] = dict_joints
 
     def lood_img(self, idx):
@@ -299,7 +304,6 @@ def radar_out(dir):
             if cv2.waitKey(10) & 0xFF == ord('\r'):
                 break
 
-
 def distribute(datadir):
     for root, dirs, _ in os.walk(datadir):
         if root == datadir:
@@ -320,9 +324,10 @@ def distribute(datadir):
     print('Distribution completed!')
 
 if __name__ == "__main__":
-    anno_dir = '/Users/midora/Desktop/MW-Pose/section_del'
-    dir = 'D:/Documents/Source/MW-Pose/test/_7.0'
+    anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
+    dir = '/Users/midora/Desktop/MW-Pose-old/test/_7.0'
     # move_anno(anno_dir, dir)
     refine(dir, 'drag')
+    # distribute('/Users/midora/Documents/MW-Pose/dataset')
     print('Completed!')
 

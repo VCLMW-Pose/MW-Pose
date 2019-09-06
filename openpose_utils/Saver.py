@@ -61,8 +61,8 @@ class Saver():
                                 value: sequence number in joint_list(-1 means not including)
 
         """
-        output = []
         for person_num, person in enumerate(person_to_joint_assoc):
+            output = []
             for joint_t in range(0, 18):
                 row = int(person[joint_t])
                 if row == -1:
