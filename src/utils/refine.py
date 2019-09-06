@@ -320,9 +320,9 @@ def distribute(datadir):
     print('Distribution completed!')
 
 if __name__ == "__main__":
-    anno_dir = '/Users/midora/Desktop/MW-Pose/section_del'
-    dir = 'D:/Documents/Source/MW-Pose/test/_7.0'
+    # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
+    dir = '/Users/midora/Desktop/MW-Pose-old/test/_9.0'
     # move_anno(anno_dir, dir)
     refine(dir, 'drag')
     print('Completed!')
-
+    exit()
