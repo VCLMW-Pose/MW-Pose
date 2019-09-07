@@ -86,6 +86,8 @@ class AnnotationLoader:
         self.radius = 6  # Range of discernible click
         self.drawing = False
         self.deleting = False
+        self.adding = False
+        self.add_joint_num = -1
         self.person_selected = -1
         self.joint_selected = ''
         self.joints = 0
@@ -236,6 +238,9 @@ class AnnotationLoader:
                     self.joint_selected = joint
                     self.joints = joints
                     min_radius = abs(self.joints[joint][0] - ix) + abs(self.joints[joint][1] - iy)
+        img = self.img.copy()  # clear all skeleton drawn on the image
+        self.plot_skeleton(img, self.cur_file, thick=2)
+        cv2.imshow(self.window_name, img)
 
 
     def MouseCallback_drag(self, event, x, y, flags, param):
@@ -247,7 +252,13 @@ class AnnotationLoader:
         This function uses motion of mouse with the left bottom down to change one joint coordinate
         """
         if event == cv2.EVENT_LBUTTONDOWN:
-            self.__find_joint(x, y)
+            if self.adding:
+                self.annotation[self.cur_file][0][self.parts] = [x, y]
+                img = self.img.copy()  # clear all skeleton drawn on the image
+                self.plot_skeleton(img, self.cur_file, thick=2)
+                cv2.imshow(self.window_name, img)
+            else:
+                self.__find_joint(x, y)
 
         elif (event == cv2.EVENT_MOUSEMOVE and flags == cv2.EVENT_FLAG_LBUTTON) or event == cv2.EVENT_LBUTTONUP:
             self.deleting = False
@@ -262,9 +273,7 @@ class AnnotationLoader:
 
         elif event == cv2.EVENT_RBUTTONDOWN:
             self.__find_joint(x, y, ifdel=True)
-            img = self.img.copy()  # clear all skeleton drawn on the image
-            self.plot_skeleton(img, self.cur_file, thick=2)
-            cv2.imshow(self.window_name, img)
+
 
         # elif event == cv2.EVENT_RBUTTONDBLCLK and flags == cv2.EVENT_FLAG_CTRLKEY:
         #     if self.deleting:
@@ -343,7 +352,7 @@ def refine(dir, mode):
         while True:
             # By judging status, the program could be more responsive.
             if anno.deleting:
-                if cv2.waitKey(10) == 127:
+                if cv2.waitKey(10) == 127:  # BackSpace
                     del anno.annotation[anno.cur_file][anno.person_selected]
                     anno.deleting = False
                     anno.person_selected = -1
@@ -352,10 +361,14 @@ def refine(dir, mode):
                     anno.plot_skeleton(img, anno.cur_file, thick=2)
                     cv2.imshow(anno.window_name, img)
             else:
-                if cv2.waitKey(10) & 0xFF == ord('\r'):
+                key = cv2.waitKey(10)
+                if key == 13:  # Enter
                     anno.joint_selected = False
                     anno.revise()
                     break
+                elif key == 32:  # Space
+                    anno.adding = True
+                    anno.add_joint_num = int(input("Please input the joint number:"))
 
     anno.revise()
     cv2.destroyAllWindows()
@@ -415,7 +428,7 @@ def distribute(datadir):
 
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
-    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_7.0'
+    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_12.0'
     # dir = '/Users/midora/Desktop/MW-Pose-old/test/_12.0'
     # move_anno(anno_dir, dir)
     refine(dir, 'drag')
