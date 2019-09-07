@@ -24,6 +24,9 @@ import numpy as np
 from random import random, seed
 import shutil
 
+# Key value of Backspace
+mac = 127
+win = 8
 
 class AnnotationLoader:
     """
@@ -177,7 +180,7 @@ class AnnotationLoader:
                 img = cv2.line(img, joints['neck'], joints['lShoulder'], (66, 218, 128), thickness=thick)
             if joints['lShoulder'][0] != -1 and joints['lElbow'][0] != -1:
                 img = cv2.line(img, joints['lShoulder'], joints['lElbow'], (62, 121, 58), thickness=thick)
-            if joints['rElbow'][0] != -1 and joints['lWrist'][0] != -1:
+            if joints['lElbow'][0] != -1 and joints['lWrist'][0] != -1:
                 img = cv2.line(img, joints['lElbow'], joints['lWrist'], (23, 25, 118), thickness=thick)
             if joints['neck'][0] != -1 and joints['rHip'][0] != -1:
                 img = cv2.line(img, joints['neck'], joints['rHip'], (152, 59, 98), thickness=thick)
@@ -207,7 +210,7 @@ class AnnotationLoader:
                 elif joint == self.joint_selected and people == self.person_selected:
                     # Highlight the selected joint.
                     img = cv2.circle(img, joints[joint], 5, (0, 255, 0), -1)
-                else:
+                elif joints[joint] != -1:
                     img = cv2.circle(img, joints[joint], 3, (68, 147, 200), -1)
         return img
 
@@ -253,7 +256,10 @@ class AnnotationLoader:
         """
         if event == cv2.EVENT_LBUTTONDOWN:
             if self.adding:
-                self.annotation[self.cur_file][0][self.parts] = [x, y]
+                self.annotation[self.cur_file][0][self.parts[self.add_joint_num]] = [x, y]
+                self.adding = False
+                self.person_selected = 0
+                self.joint_selected = self.parts[self.add_joint_num]
                 img = self.img.copy()  # clear all skeleton drawn on the image
                 self.plot_skeleton(img, self.cur_file, thick=2)
                 cv2.imshow(self.window_name, img)
@@ -324,7 +330,7 @@ class AnnotationLoader:
 
 
 
-def refine(dir, mode):
+def refine(dir, mode, os=mac):
     """
     Args:
         dir:    (string) directory of one group of data
@@ -352,7 +358,7 @@ def refine(dir, mode):
         while True:
             # By judging status, the program could be more responsive.
             if anno.deleting:
-                if cv2.waitKey(10) == 127:  # BackSpace
+                if cv2.waitKey(10) == os:  # Backspace
                     del anno.annotation[anno.cur_file][anno.person_selected]
                     anno.deleting = False
                     anno.person_selected = -1
@@ -368,7 +374,7 @@ def refine(dir, mode):
                     break
                 elif key == 32:  # Space
                     anno.adding = True
-                    anno.add_joint_num = int(input("Please input the joint number:"))
+                    anno.add_joint_num = int(input("Please input the joint number:")) + 1
 
     anno.revise()
     cv2.destroyAllWindows()
@@ -428,10 +434,11 @@ def distribute(datadir):
 
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
-    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_12.0'
+    # dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_12.0'
     # dir = '/Users/midora/Desktop/MW-Pose-old/test/_12.0'
+    dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
-    refine(dir, 'drag')
+    refine(dir, 'drag', os=win)
     # distribute(dir)
     print('Completed!')
     exit()
