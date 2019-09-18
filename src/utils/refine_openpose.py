@@ -28,6 +28,7 @@ import shutil
 mac = 127
 win = 8
 
+
 class AnnotationLoader:
     """
     This class is utilized for one group of data
@@ -245,7 +246,6 @@ class AnnotationLoader:
         self.plot_skeleton(img, self.cur_file, thick=2)
         cv2.imshow(self.window_name, img)
 
-
     def MouseCallback_drag(self, event, x, y, flags, param):
         """
         Standard template parameter list of mouse callback function
@@ -280,7 +280,6 @@ class AnnotationLoader:
         elif event == cv2.EVENT_RBUTTONDOWN:
             self.__find_joint(x, y, ifdel=True)
 
-
         # elif event == cv2.EVENT_RBUTTONDBLCLK and flags == cv2.EVENT_FLAG_CTRLKEY:
         #     if self.deleting:
         #         del self.annotation[self.cur_file][self.person_selected]
@@ -290,7 +289,6 @@ class AnnotationLoader:
         #         img = self.img.copy()  # clear all skeleton drawn on the image
         #         self.plot_skeleton(img, self.cur_file, thick=2)
         #         cv2.imshow(self.window_name, img)
-
 
     ##########  This function has not been compatible with OpenPose annotation yet. ####################
     def MouseCallback_click(self, event, x, y, flags, param):
@@ -326,8 +324,6 @@ class AnnotationLoader:
                     img = self.img.copy()  # To clear the original skeleton.
                     self.plot_skeleton(img, self.cur_file, 2)
                     cv2.imshow(self.window_name, img)
-
-
 
 
 def refine(dir, mode, os=mac):
