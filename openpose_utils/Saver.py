@@ -88,7 +88,7 @@ class Saver():
                 for i in range(0, 18):
                     x = str(output[i][0])
                     y = str(output[i][1])
-                    c = str(output[i][2])
+                    c = str(output[i][2])  # confidence
                     f.writelines([str(i+1), '(', x, ', ', y, ', ', c, ') '])
                 f.writelines(['\n'])
 
