@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Thu Sep 5 01:13 2019
+    Last edit date   : Thu Sep 19 00:06 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -66,9 +66,9 @@ class Saver():
             for joint_t in range(0, 18):
                 row = int(person[joint_t])
                 if row == -1:
-                    output.append([-1, -1])
+                    output.append([-1, -1, -1])
                 else:
-                    output.append([joint_list[row][0], joint_list[row][1]])
+                    output.append([joint_list[row][0], joint_list[row][1], joint_list[row][2]])
             self.save(fname, person_num, output)
 
 
@@ -88,7 +88,8 @@ class Saver():
                 for i in range(0, 18):
                     x = str(output[i][0])
                     y = str(output[i][1])
-                    f.writelines([str(i+1), '(', x, ', ', y, ') '])
+                    c = str(output[i][2])  # confidence
+                    f.writelines([str(i+1), '(', x, ', ', y, ', ', c, ') '])
                 f.writelines(['\n'])
 
 

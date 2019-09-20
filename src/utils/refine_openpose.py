@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Sat 7 02:15 2019
+    Last edit date   : Fri Sep 20 01:05 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -28,6 +28,7 @@ import shutil
 mac = 127
 win = 8
 
+
 class AnnotationLoader:
     """
     This class is utilized for one group of data
@@ -44,13 +45,14 @@ class AnnotationLoader:
             }
     """
 
-    def __init__(self, dir):
+    def __init__(self, dir, thread=0):
         """
             Args:
                 dir: (string) Directory of folder for pre-annotated data
                         e.g. '/Users/midora/Desktop/MW-Pose/section_del/_1.0'
         """
         self.dir = dir
+        self.thread = thread
         if os.path.exists(os.path.join(dir, 'refined.txt')):
             self.anno_file = os.path.join(dir, 'refined.txt')
         else:
@@ -121,11 +123,15 @@ class AnnotationLoader:
             line = line[1][2:]
             dict_joints = {}
             joints = line.rstrip(') \n').split(') ')
+            confidence = 0
             for joint in joints:
                 joint = joint.split('(')
                 str_coor = joint[1].split(', ')
-                dict_joints[self.parts[int(joint[0])]] = [int(float(str_coor[0])), int(float(str_coor[1]))]
-            self.annotation[name].append(dict_joints)
+                dict_joints[self.parts[int(joint[0])]] = [int(float(str_coor[0])), int(float(str_coor[1])),
+                                                       float(str_coor[2])]
+                confidence += float(str_coor[2])
+            if confidence > self.thread:
+                self.annotation[name].append(dict_joints)
 
     def lood_img(self, idx):
         if idx >= len(self):
@@ -144,12 +150,13 @@ class AnnotationLoader:
             for jpg in self.data_files:
                 for i, people in enumerate(self.annotation[jpg]):
                     f.writelines([jpg, ' : ', str(i), ' '])
-                    for i, part in enumerate(self.parts):
+                    for j, part in enumerate(self.parts):
                         if part == 'None':
                             continue
                         x = str(people[part][0])
                         y = str(people[part][1])
-                        f.writelines([str(i), '(', x, ', ', y, ') '])
+                        c = str(people[part][2])
+                        f.writelines([str(j), '(', x, ', ', y, ', ', c, ') '])
                     f.writelines(['\n'])
         self.drawing = False
         self.deleting = False
@@ -166,52 +173,53 @@ class AnnotationLoader:
                 key:            (int) the length of time the window stays
         '''
         for people, joints in enumerate(self.annotation[data_file]):
+            jointscoor = {}
             for i in range(1, len(self.parts)):
-                joints[self.parts[i]] = (joints[self.parts[i]][0], joints[self.parts[i]][1])
-            if joints['nose'][0] != -1 and joints['neck'][0] != -1:
-                img = cv2.line(img, joints['nose'], joints['neck'], (181, 102, 60), thickness=thick)
-            if joints['neck'][0] != -1 and joints['rShoulder'][0] != -1:
-                img = cv2.line(img, joints['neck'], joints['rShoulder'], (250, 203, 91), thickness=thick)
-            if joints['rShoulder'][0] != -1 and joints['rElbow'][0] != -1:
-                img = cv2.line(img, joints['rShoulder'], joints['rElbow'], (35, 198, 77), thickness=thick)
-            if joints['rElbow'][0] != -1 and joints['rWrist'][0] != -1:
-                img = cv2.line(img, joints['rElbow'], joints['rWrist'], (35, 98, 177), thickness=thick)
-            if joints['neck'][0] != -1 and joints['lShoulder'][0] != -1:
-                img = cv2.line(img, joints['neck'], joints['lShoulder'], (66, 218, 128), thickness=thick)
-            if joints['lShoulder'][0] != -1 and joints['lElbow'][0] != -1:
-                img = cv2.line(img, joints['lShoulder'], joints['lElbow'], (62, 121, 58), thickness=thick)
-            if joints['lElbow'][0] != -1 and joints['lWrist'][0] != -1:
-                img = cv2.line(img, joints['lElbow'], joints['lWrist'], (23, 25, 118), thickness=thick)
-            if joints['neck'][0] != -1 and joints['rHip'][0] != -1:
-                img = cv2.line(img, joints['neck'], joints['rHip'], (152, 59, 98), thickness=thick)
-            if joints['rHip'][0] != -1 and joints['rKnee'][0] != -1:
-                img = cv2.line(img, joints['rHip'], joints['rKnee'], (94, 160, 66), thickness=thick)
-            if joints['rKnee'][0] != -1 and joints['rAnkle'][0] != -1:
-                img = cv2.line(img, joints['rKnee'], joints['rAnkle'], (44, 159, 96), thickness=thick)
-            if joints['neck'][0] != -1 and joints['lHip'][0] != -1:
-                img = cv2.line(img, joints['neck'], joints['lHip'], (51, 135, 239), thickness=thick)
-            if joints['lHip'][0] != -1 and joints['lKnee'][0] != -1:
-                img = cv2.line(img, joints['lHip'], joints['lKnee'], (75, 58, 217), thickness=thick)
-            if joints['lKnee'][0] != -1 and joints['lAnkle'][0] != -1:
-                img = cv2.line(img, joints['lKnee'], joints['lAnkle'], (244, 59, 166), thickness=thick)
-            if joints['nose'][0] != -1 and joints['rEye'][0] != -1:
-                img = cv2.line(img, joints['nose'], joints['rEye'], (49, 56, 218), thickness=thick)
-            if joints['rEye'][0] != -1 and joints['rEar'][0] != -1:
-                img = cv2.line(img, joints['rEye'], joints['rEar'], (23, 25, 118), thickness=thick)
-            if joints['nose'][0] != -1 and joints['lEye'][0] != -1:
-                img = cv2.line(img, joints['nose'], joints['lEye'], (130, 35, 158), thickness=thick)
-            if joints['lEye'][0] != -1 and joints['lEar'][0] != -1:
-                img = cv2.line(img, joints['lEye'], joints['lEar'], (53, 200, 18), thickness=thick)
+                jointscoor[self.parts[i]] = (joints[self.parts[i]][0], joints[self.parts[i]][1])
+            if jointscoor['nose'][0] != -1 and jointscoor['neck'][0] != -1:
+                img = cv2.line(img, jointscoor['nose'], jointscoor['neck'], (181, 102, 60), thickness=thick)
+            if jointscoor['neck'][0] != -1 and jointscoor['rShoulder'][0] != -1:
+                img = cv2.line(img, jointscoor['neck'], jointscoor['rShoulder'], (250, 203, 91), thickness=thick)
+            if jointscoor['rShoulder'][0] != -1 and jointscoor['rElbow'][0] != -1:
+                img = cv2.line(img, jointscoor['rShoulder'], jointscoor['rElbow'], (35, 198, 77), thickness=thick)
+            if jointscoor['rElbow'][0] != -1 and jointscoor['rWrist'][0] != -1:
+                img = cv2.line(img, jointscoor['rElbow'], jointscoor['rWrist'], (35, 98, 177), thickness=thick)
+            if jointscoor['neck'][0] != -1 and jointscoor['lShoulder'][0] != -1:
+                img = cv2.line(img, jointscoor['neck'], jointscoor['lShoulder'], (66, 218, 128), thickness=thick)
+            if jointscoor['lShoulder'][0] != -1 and jointscoor['lElbow'][0] != -1:
+                img = cv2.line(img, jointscoor['lShoulder'], jointscoor['lElbow'], (62, 121, 58), thickness=thick)
+            if jointscoor['lElbow'][0] != -1 and jointscoor['lWrist'][0] != -1:
+                img = cv2.line(img, jointscoor['lElbow'], jointscoor['lWrist'], (23, 25, 118), thickness=thick)
+            if jointscoor['neck'][0] != -1 and jointscoor['rHip'][0] != -1:
+                img = cv2.line(img, jointscoor['neck'], jointscoor['rHip'], (152, 59, 98), thickness=thick)
+            if jointscoor['rHip'][0] != -1 and jointscoor['rKnee'][0] != -1:
+                img = cv2.line(img, jointscoor['rHip'], jointscoor['rKnee'], (94, 160, 66), thickness=thick)
+            if jointscoor['rKnee'][0] != -1 and jointscoor['rAnkle'][0] != -1:
+                img = cv2.line(img, jointscoor['rKnee'], jointscoor['rAnkle'], (44, 159, 96), thickness=thick)
+            if jointscoor['neck'][0] != -1 and jointscoor['lHip'][0] != -1:
+                img = cv2.line(img, jointscoor['neck'], jointscoor['lHip'], (51, 135, 239), thickness=thick)
+            if jointscoor['lHip'][0] != -1 and jointscoor['lKnee'][0] != -1:
+                img = cv2.line(img, jointscoor['lHip'], jointscoor['lKnee'], (75, 58, 217), thickness=thick)
+            if jointscoor['lKnee'][0] != -1 and jointscoor['lAnkle'][0] != -1:
+                img = cv2.line(img, jointscoor['lKnee'], jointscoor['lAnkle'], (244, 59, 166), thickness=thick)
+            if jointscoor['nose'][0] != -1 and jointscoor['rEye'][0] != -1:
+                img = cv2.line(img, jointscoor['nose'], jointscoor['rEye'], (49, 56, 218), thickness=thick)
+            if jointscoor['rEye'][0] != -1 and jointscoor['rEar'][0] != -1:
+                img = cv2.line(img, jointscoor['rEye'], jointscoor['rEar'], (23, 25, 118), thickness=thick)
+            if jointscoor['nose'][0] != -1 and jointscoor['lEye'][0] != -1:
+                img = cv2.line(img, jointscoor['nose'], jointscoor['lEye'], (130, 35, 158), thickness=thick)
+            if jointscoor['lEye'][0] != -1 and jointscoor['lEar'][0] != -1:
+                img = cv2.line(img, jointscoor['lEye'], jointscoor['lEar'], (53, 200, 18), thickness=thick)
             for joint in self.parts:
                 if joint == 'None':
                     continue
                 if self.deleting and people == self.person_selected:
-                    img = cv2.circle(img, joints[joint], 5, (0, 0, 255), -1)
+                    img = cv2.circle(img, jointscoor[joint], 5, (0, 0, 255), -1)
                 elif joint == self.joint_selected and people == self.person_selected:
                     # Highlight the selected joint.
-                    img = cv2.circle(img, joints[joint], 5, (0, 255, 0), -1)
-                elif joints[joint] != -1:
-                    img = cv2.circle(img, joints[joint], 3, (68, 147, 200), -1)
+                    img = cv2.circle(img, jointscoor[joint], 5, (0, 255, 0), -1)
+                elif jointscoor[joint] != -1:
+                    img = cv2.circle(img, jointscoor[joint], 3, (68, 147, 200), -1)
         return img
 
     def __find_joint(self, x, y, ifdel=False):
@@ -245,7 +253,6 @@ class AnnotationLoader:
         self.plot_skeleton(img, self.cur_file, thick=2)
         cv2.imshow(self.window_name, img)
 
-
     def MouseCallback_drag(self, event, x, y, flags, param):
         """
         Standard template parameter list of mouse callback function
@@ -269,7 +276,7 @@ class AnnotationLoader:
         elif (event == cv2.EVENT_MOUSEMOVE and flags == cv2.EVENT_FLAG_LBUTTON) or event == cv2.EVENT_LBUTTONUP:
             self.deleting = False
             if self.drawing:
-                self.joints[self.joint_selected] = [x, y]
+                self.joints[self.joint_selected] = [x, y, 1]
                 #  self.joints here is actually a pointer pointed some part of self.annotation
                 #  So only changing self.joints is OK.
             # Refresh image
@@ -280,7 +287,6 @@ class AnnotationLoader:
         elif event == cv2.EVENT_RBUTTONDOWN:
             self.__find_joint(x, y, ifdel=True)
 
-
         # elif event == cv2.EVENT_RBUTTONDBLCLK and flags == cv2.EVENT_FLAG_CTRLKEY:
         #     if self.deleting:
         #         del self.annotation[self.cur_file][self.person_selected]
@@ -290,7 +296,6 @@ class AnnotationLoader:
         #         img = self.img.copy()  # clear all skeleton drawn on the image
         #         self.plot_skeleton(img, self.cur_file, thick=2)
         #         cv2.imshow(self.window_name, img)
-
 
     ##########  This function has not been compatible with OpenPose annotation yet. ####################
     def MouseCallback_click(self, event, x, y, flags, param):
@@ -328,15 +333,13 @@ class AnnotationLoader:
                     cv2.imshow(self.window_name, img)
 
 
-
-
-def refine(dir, mode, os=mac):
+def refine(dir, mode, thread=0, os=mac):
     """
     Args:
         dir:    (string) directory of one group of data
         mode:   (string) decide whether to move or click to change the joint point
     """
-    anno = AnnotationLoader(dir)
+    anno = AnnotationLoader(dir, thread)
     anno.window_name = dir.split('/')[-1]
     cv2.namedWindow(anno.window_name)
     for idx, anno.cur_file in enumerate(anno.data_files):
@@ -418,6 +421,8 @@ def distribute(datadir):
             for dir in dirs:
                 if os.path.exists(os.path.join(root, dir, 'joint_point.txt')):
                     os.remove(os.path.join(root, dir, 'joint_point.txt'))
+                if os.path.exists(os.path.join(root, dir, 'refined.txt')):
+                    os.remove(os.path.join(root, dir, 'refined.txt'))
     with open(os.path.join(datadir, 'annotation_all.txt'), 'r') as f:
         lines = f.readlines()
         for line in lines:
@@ -434,11 +439,11 @@ def distribute(datadir):
 
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
-    # dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_12.0'
+    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_12.0'
     # dir = '/Users/midora/Desktop/MW-Pose-old/test/_12.0'
-    dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
+    # dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
-    refine(dir, 'drag', os=win)
+    refine(dir, 'drag', thread=0, os=mac)
     # distribute(dir)
     print('Completed!')
     exit()

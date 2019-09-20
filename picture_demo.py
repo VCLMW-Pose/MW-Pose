@@ -63,5 +63,7 @@ for i, fname in enumerate(loader):
     saver.crawl(fname, joint_list, person_to_joint_assoc)
     cv2.imwrite(dir + 'done\\' + str(i)+'.png', to_plot)
     print('%d images have been annotated!' % i)
+print('Annotation completed!')
 saver.distribute()
+exit()
 
