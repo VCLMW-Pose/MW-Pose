@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Sat Sep 21 21:07 2019
+    Last edit date   : Mon Sep 23 00:13 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -24,7 +24,7 @@ import numpy as np
 from random import random, seed
 import shutil
 import tkinter as tk
-from tkinter import messagebox
+from PIL import Image, ImageTk
 
 # Key value of Backspace
 mac = 127
@@ -280,7 +280,10 @@ class AnnotationLoader:
         elif (event == cv2.EVENT_MOUSEMOVE and flags == cv2.EVENT_FLAG_LBUTTON) or event == cv2.EVENT_LBUTTONUP:
             self.deleting = False
             if self.drawing:
-                self.joints[self.joint_selected] = [x, y, 1]
+                if x <= 0 or y <= 0:
+                    self.joints[self.joint_selected] = [-1, -1, -1]
+                else:
+                    self.joints[self.joint_selected] = [x, y, 1]
                 #  self.joints here is actually a pointer pointed some part of self.annotation
                 #  So only changing self.joints is OK.
             # Refresh image
@@ -365,6 +368,28 @@ class MyCollectApp(tk.Toplevel):
         self.destroy()
         print("You added joint：%s" % (add_joint_num))
 
+def pop_box():
+    window = tk.Tk()
+    window.title('Joint Addition')
+    window.geometry('500x300')  # 这里的乘是小x
+
+    def print_selection():
+        add_joint_num = lb.get(lb.curselection())  # 获取当前选中的文本
+        window.destroy()
+        print(add_joint_num)
+
+    b1 = tk.Button(window, text='Confirm', width=15, height=2, command=print_selection)
+    b1.pack()
+    var2 = tk.StringVar()
+    var2.set(['nose', 'neck', 'rShoulder',
+              'rElbow', 'rWrist', 'lShoulder',
+              'lElbow', 'lWrist', 'rHip', 'rKnee',
+              'rAnkle', 'lHip', 'lKnee', 'lAnkle',
+              'rEye', 'lEye', 'rEar', 'lEar'])  # 为变量var2设置值
+    lb = tk.Listbox(window, listvariable=var2)  # 将var2的值赋给Listbox
+    lb.pack()
+
+    window.mainloop()
 
 def refine(dir, mode, thread=0, os=mac):
     """
@@ -417,12 +442,12 @@ def refine(dir, mode, thread=0, os=mac):
                         idx -= 1
                     break
                 elif key == 32:  # Space
-                    # global add_joint_num
+                    global add_joint_num
                     anno.adding = True
                     anno.add_joint_num = int(input("Please input the joint number:")) + 1
 
-                    # app.mainloop()
-                    # anno.add_joint_num = int(add_joint_num) + 1
+                    # pop_box()
+                    # anno.add_joint_num = int(anno.add_joint_num) + 1
                     # add_joint_num = ''
 
     anno.revise()
@@ -502,10 +527,11 @@ def assemble(datadir):
 
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
-    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_12.0'
+    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_9.0'
     # dir = '/Users/midora/Desktop/MW-Pose-old/test/_12.0'
     # dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
+    # pop_box()
     refine(dir, 'drag', thread=0, os=mac)
     # distribute(dir)
     # assemble(dir)
