@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Fri Sep 20 01:05 2019
+    Last edit date   : Mon Sep 23 00:13 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -23,10 +23,14 @@ import cv2
 import numpy as np
 from random import random, seed
 import shutil
+import tkinter as tk
+from PIL import Image, ImageTk
 
 # Key value of Backspace
 mac = 127
 win = 8
+
+add_joint_num = ''
 
 
 class AnnotationLoader:
@@ -128,7 +132,7 @@ class AnnotationLoader:
                 joint = joint.split('(')
                 str_coor = joint[1].split(', ')
                 dict_joints[self.parts[int(joint[0])]] = [int(float(str_coor[0])), int(float(str_coor[1])),
-                                                       float(str_coor[2])]
+                                                          float(str_coor[2])]
                 confidence += float(str_coor[2])
             if confidence > self.thread:
                 self.annotation[name].append(dict_joints)
@@ -263,7 +267,7 @@ class AnnotationLoader:
         """
         if event == cv2.EVENT_LBUTTONDOWN:
             if self.adding:
-                self.annotation[self.cur_file][0][self.parts[self.add_joint_num]] = [x, y]
+                self.annotation[self.cur_file][0][self.parts[self.add_joint_num]] = [x, y, 1]
                 self.adding = False
                 self.person_selected = 0
                 self.joint_selected = self.parts[self.add_joint_num]
@@ -276,7 +280,10 @@ class AnnotationLoader:
         elif (event == cv2.EVENT_MOUSEMOVE and flags == cv2.EVENT_FLAG_LBUTTON) or event == cv2.EVENT_LBUTTONUP:
             self.deleting = False
             if self.drawing:
-                self.joints[self.joint_selected] = [x, y, 1]
+                if x <= 0 or y <= 0:
+                    self.joints[self.joint_selected] = [-1, -1, -1]
+                else:
+                    self.joints[self.joint_selected] = [x, y, 1]
                 #  self.joints here is actually a pointer pointed some part of self.annotation
                 #  So only changing self.joints is OK.
             # Refresh image
@@ -333,6 +340,57 @@ class AnnotationLoader:
                     cv2.imshow(self.window_name, img)
 
 
+class MyCollectApp(tk.Toplevel):
+    def __init__(self):
+        super().__init__()
+        self.title('Add missing joint')
+        self.setupUI()
+
+    def setupUI(self):
+        row1 = tk.Frame(self)
+        row1.pack(fill="x")
+        l1 = tk.Label(row1, text="Joint Serial Number：", height=10, width=20)
+        l1.pack(side=tk.LEFT)  # 这里的side可以赋值为LEFT  RTGHT TOP  BOTTOM
+        self.xls_text = tk.StringVar()
+        tk.Entry(row1, textvariable=self.xls_text).pack(side=tk.RIGHT)
+
+        row2 = tk.Frame(self)
+        row2.pack(fill="x")
+        tk.Button(row2, text="Confirm", command=self.on_click).pack(side=tk.RIGHT)
+
+    def on_click(self):
+        global add_joint_num
+        add_joint_num = self.xls_text.get().lstrip()
+        if len(add_joint_num) == 0:
+            messagebox.showwarning(title='Warning', message='Please enter the joint number!')
+            return False
+        self.quit()
+        self.destroy()
+        print("You added joint：%s" % (add_joint_num))
+
+def pop_box():
+    window = tk.Tk()
+    window.title('Joint Addition')
+    window.geometry('500x300')  # 这里的乘是小x
+
+    def print_selection():
+        add_joint_num = lb.get(lb.curselection())  # 获取当前选中的文本
+        window.destroy()
+        print(add_joint_num)
+
+    b1 = tk.Button(window, text='Confirm', width=15, height=2, command=print_selection)
+    b1.pack()
+    var2 = tk.StringVar()
+    var2.set(['nose', 'neck', 'rShoulder',
+              'rElbow', 'rWrist', 'lShoulder',
+              'lElbow', 'lWrist', 'rHip', 'rKnee',
+              'rAnkle', 'lHip', 'lKnee', 'lAnkle',
+              'rEye', 'lEye', 'rEar', 'lEar'])  # 为变量var2设置值
+    lb = tk.Listbox(window, listvariable=var2)  # 将var2的值赋给Listbox
+    lb.pack()
+
+    window.mainloop()
+
 def refine(dir, mode, thread=0, os=mac):
     """
     Args:
@@ -340,9 +398,12 @@ def refine(dir, mode, thread=0, os=mac):
         mode:   (string) decide whether to move or click to change the joint point
     """
     anno = AnnotationLoader(dir, thread)
+    # app = MyCollectApp()
     anno.window_name = dir.split('/')[-1]
     cv2.namedWindow(anno.window_name)
-    for idx, anno.cur_file in enumerate(anno.data_files):
+    idx = 0
+    while idx < len(anno.data_files):
+        anno.cur_file = anno.data_files[idx]
         # if anno.data_files[idx]
         # anno.window_name = dir.split('/')[-1] + '/' + anno.cur_file
         anno.img = anno.lood_img(idx)
@@ -371,13 +432,23 @@ def refine(dir, mode, thread=0, os=mac):
                     cv2.imshow(anno.window_name, img)
             else:
                 key = cv2.waitKey(10)
-                if key == 13:  # Enter
+                if key == 13 or key == 3:  # Enter
                     anno.joint_selected = False
                     anno.revise()
+                    idx += 1
+                    break
+                elif key == 2:
+                    if idx >= 1:
+                        idx -= 1
                     break
                 elif key == 32:  # Space
+                    global add_joint_num
                     anno.adding = True
                     anno.add_joint_num = int(input("Please input the joint number:")) + 1
+
+                    # pop_box()
+                    # anno.add_joint_num = int(anno.add_joint_num) + 1
+                    # add_joint_num = ''
 
     anno.revise()
     cv2.destroyAllWindows()
@@ -436,14 +507,33 @@ def distribute(datadir):
                 subf.write(jpg + ' : ' + point)
     print('Distribution completed!')
 
+def assemble(datadir):
+    if os.path.exists(os.path.join(datadir, 'refined_all.txt')):
+        os.remove(os.path.join(datadir, 'refined_all.txt'))
+    for root, dirs, _ in os.walk(datadir):
+        if root == datadir:
+            for dir in dirs:
+                if os.path.exists(os.path.join(root, dir, 'refined.txt')):
+                    with open(os.path.join(datadir, 'refined_all.txt'), 'a') as fw:
+                        with open(os.path.join(root, dir, 'refined.txt'), 'r') as fr:
+                            lines = fr.readlines()
+                            for line in lines:
+                                line = line.split(' : ')
+                                name = line[0]
+                                point = line[1]
+                                folder = dir + '\\' + name
+                                fw.write(folder + ' : ' + point)
+    print('Assembling completed!')
 
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
-    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_12.0'
+    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_9.0'
     # dir = '/Users/midora/Desktop/MW-Pose-old/test/_12.0'
     # dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
+    # pop_box()
     refine(dir, 'drag', thread=0, os=mac)
     # distribute(dir)
+    # assemble(dir)
     print('Completed!')
     exit()
