@@ -222,7 +222,7 @@ class AnnotationLoader:
                 elif joint == self.joint_selected and people == self.person_selected:
                     # Highlight the selected joint.
                     img = cv2.circle(img, jointscoor[joint], 5, (0, 255, 0), -1)
-                elif jointscoor[joint] != -1:
+                elif jointscoor[joint] != (-1, -1):
                     img = cv2.circle(img, jointscoor[joint], 3, (68, 147, 200), -1)
         return img
 
