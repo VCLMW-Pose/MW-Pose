@@ -17,6 +17,7 @@ import WalabotAPI
 import numpy as np
 import os
 from src.utils.imageproc import *
+from PIL import Image
 from sys import platform
 from matplotlib import animation
 
@@ -206,5 +207,7 @@ def read_signal(save_dir):
     plt.show()
     plt.savefig(save_dir + ".jpg")
 
+
 if __name__ == '__main__':
-    read_signal("F:/dataset/11.0/1551760901296")
+    read_signal("F:/capref2/signals/1551760904280")
+    # read_signal("E:/MW-Pose/res/1551761233560")

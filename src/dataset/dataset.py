@@ -26,16 +26,17 @@
 #
 #   Dataloader implementation of all networks.
 #
-#   Shrowshoo-Young 2019-3, shaoshuyangseu@gmail.com
+#   Shrowshoo-Young 2019-10, shaoshuyangseu@gmail.com
 #   South East University, Vision and Cognition Laboratory, 211189 Nanjing, China
 ##################################################################################
 
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
-from src.utils import file_names
-from src.utils import scaling
+# from src.utils import scaling
 from src.utils import putGaussianMap
-from src.utils import Annotation
+from src.utils.imageproc import *
+import matplotlib.pyplot as plt
+
 import numpy as np
 import torch
 import cv2
@@ -56,8 +57,7 @@ class deSeqNetLoader(Dataset):
     and continuous video clip to converge. If shuffle is needed, please set
     the input parameter shuffle of deSeqNetLoader to True.***
     '''
-    def __init__(self, dataDirectory, inputSize, inputDepth, GTSize, imgw, imgh, clipFrame, selectPoint, paraparse,
-                 rotate=False, shuffle=False):
+    def __init__(self, dataDirectory, signal_size = 60, GTSize = 64, imgw = 640, imgh = 360, valid = 0):
         '''
         :param dataDirectory: directory of saving dataset, the annotation
         txt is named as joint_point.txt.
@@ -80,35 +80,46 @@ class deSeqNetLoader(Dataset):
         epoch.
         '''
         # Max number of key points
-        self.MAX_POINTNUM = 16
+        self.MAX_POINTNUM = 18
 
         self.dataDirectory = dataDirectory
-        self.inputSize = inputSize
-        self.inputDepth = inputDepth
+        # self.inputSize = inputSize
+        # self.inputDepth = inputDepth
         self.GTSize = GTSize
-        self.keyPointName = ['None',  # To be compatible with the pre-annotation
-                            'rank', 'rkne', 'rhip', 'lhip', 'lkne', 'lank', 'pelv',
-                             'thrx', 'neck', 'head', 'rwri', 'relb', 'rsho', 'lsho',
-                             'lelb', 'lwri']
-        self.selectPoint = selectPoint
-        self.rotate = rotate
-        self.shuffle = shuffle
-        self.frames = clipFrame
+        self.signal_size = signal_size
+
+        # Read keypoint names
+        with open(os.path.join(dataDirectory, 'keypoint.names'), 'r') as namefile:
+            self.keyPointName = namefile.readlines()
+            self.keyPointName = [line.rstrip() for line in self.keyPointName]
+
+        # self.selectPoint = selectPoint
+        # self.rotate = rotate
+        # self.shuffle = shuffle
+        # self.frames = clipFrame
         self.imgw = imgw
         self.imgh = imgh
-        self.paraparse = paraparse
+        # self.paraparse = paraparse
 
         # Read annotation
-        self.anno = self.readAnnotation(dataDirectory)
+        # self.anno = self.readAnnotation(dataDirectory)
 
         # Discard the redundant annotation that cannot make up a group
-        length = len(self.anno)
-        remainder = length%self.frames
-        self.anno = self.anno[:length - remainder - 1]
+        if valid == 0:
+            names = 'train.txt'
+        else:
+            names = 'valid.txt'
+
+        with open(os.path.join(dataDirectory, names)) as namefile:
+            self.names = namefile.readlines()
+            self.names = [line.rstrip() for line in self.names]
+
+        # remainder = length%self.frames
+        # self.anno = self.anno[:length - remainder - 1]
 
         # reorder the groups randomly
-        if shuffle:
-            self.reorder()
+        # if shuffle:
+        #    self.reorder()
 
     def __getitem__(self, idx):
         '''
@@ -117,24 +128,23 @@ class deSeqNetLoader(Dataset):
         performs rotation. The returns are confidence map and signal.
         '''
         # Get file name and eliminate its postfix '.jpg'
-        file_name = self.anno[idx]["fname"]
-        file_name = file_name[:-4]
+        file_name = self.names[idx]
 
         # Get confidence map ground truth and signal
         conf_maps = self.getGroundTruth(idx)
-        signal = self.readSignal(self.dataDirectory + file_name)
+        signal = self.readSignal(file_name)
 
         # Data augmentation by rotating both signal and confidence map
-        if self.rotate:
-            conf_maps, signal = self.rotation(conf_maps, signal)
+        # if self.rotate:
+        #    conf_maps, signal = self.rotation(conf_maps, signal)
 
         conf_maps = torch.from_numpy(conf_maps.astype(np.float32))
-        signal = torch.from_numpy(signal.astype(np.float32))
+        signal = torch.from_numpy(signal.astype(np.float32)).div(signal.max())
 
         return conf_maps, signal
 
     def __len__(self):
-        return len(self.anno)
+        return len(self.names)
 
     def reorder(self):
         '''
@@ -177,27 +187,39 @@ class deSeqNetLoader(Dataset):
 
 
     def getGroundTruth(self, idx):
-        target = self.anno[idx]
-        conf_maps = np.zeros((self.GTSize, self.GTSize, len(self.selectPoint)))
-        sigma = self.paraparse.conf_sigma
+        # Read annotation
+        name = self.names[idx].split('/')[-1]
+        annofile = open(os.path.join(self.dataDirectory, 'labels', name + '.txt'))
+        anno = annofile.readlines()
+        anno = [line.rstrip() for line in anno]
+
+        # Allocate memory for confidence map
+        conf_maps = np.zeros((self.MAX_POINTNUM, self.GTSize, self.GTSize))
+        sigma = 3
 
         # Coefficient of coordinates transformation
-        new_h = self.imgh*min(self.imgh / self.GTSize, self.imgw / self.GTSize)
-        new_w = self.imgw*min(self.imgh / self.GTSize, self.imgw / self.GTSize)
+        new_h = self.imgh*min(self.GTSize / self.imgh, self.GTSize / self.imgw)
+        new_w = self.imgw*min(self.GTSize / self.imgh, self.GTSize / self.imgw)
         pad_h = (self.GTSize - new_h) / 2
         pad_w = (self.GTSize - new_w) / 2
 
-        for idx, point_name in enumerate(self.selectPoint):
-            coord = target[point_name]
+        for idx, point_name in enumerate(self.keyPointName):
+            coord = anno[idx]
+            coord = coord.split(' ')
+            coord = [int(coord[0]), int(coord[1])]
+            if coord[0] == -1:
+                continue
 
             # Transformation of coordinates
             coord[0] = coord[0]*(new_w / self.imgw)
             coord[1] = coord[1]*(new_h / self.imgw)
             coord[0] += pad_w
-            coord[0] += pad_h
+            coord[1] += pad_h
 
             # Add 2d gaussian confidence map
-            conf_maps[:, :, idx] = putGaussianMap(coord, conf_maps[:, :, idx], sigma, self.GTSize)
+            conf_maps[idx, :, :] = putGaussianMap(coord, conf_maps[idx, :, :], sigma, [self.GTSize, self.GTSize])
+            # heatmap = plt.pcolormesh(conf_maps[idx, :, :], cmap='jet')
+            # plt.show()
 
         return conf_maps
 
@@ -207,13 +229,29 @@ class deSeqNetLoader(Dataset):
         data = np.fromfile(sig_file, dtype=np.int32)
 
         # Dimensions
-        size_x = data[0]
+        try:
+            size_x = data[0]
+        except:
+            print(directory)
+
         size_y = data[1]
         size_z = data[2]
 
         # Resize the signal as size_z x size_x x size_y
         raw_img = np.array(data[3:]).reshape(size_z, size_x, size_y)
-        return raw_img
+
+        horizontal = np.zeros([60, 60])
+        vertical = np.zeros([60, 60])
+        horizontal[:, 23:36] = sumup_horizontal(raw_img)
+        vertical[:, 23:36] = sumup_perpendicular(raw_img)
+
+        # Expand dimension
+        horizontal = np.expand_dims(horizontal, 0)
+        horizontal = np.expand_dims(horizontal, 0)
+        vertical = np.expand_dims(vertical, 0)
+        vertical = np.expand_dims(vertical, 0)
+        signal = np.concatenate((horizontal, vertical), 1)
+        return signal
 
     def readAnnotation(self, dataDirectory):
         with open(os.path.join(dataDirectory, 'joint_point.txt'), 'r') as file:
