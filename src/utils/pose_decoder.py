@@ -91,7 +91,8 @@ def decoder(output, threshold=0.4):
             op_np[part][1] = -1
     op_list = [[0, 0]] * len(parts)  #For drawing
     for part in range(len(parts)):
-        op_list[part] = [op_np[part][0] * 10, op_np[part][1] * 10 - 180]
+        if op_np[part][0] == -1 or op_np[part][1] == -1:
+            op_list[part] = [op_np[part][0] * 10, op_np[part][1] * 10 - 180]
         # *640/64 scaling to the image size; -180 no padding
     return op_np, op_list
 
@@ -100,6 +101,7 @@ def decoder(output, threshold=0.4):
 if __name__ == "__main__":
     output = np.random.random((18, 64, 64))
     black = np.zeros((360, 640, 3))
+    black = black.astype(np.uint8)
     cv2.namedWindow('Black')
     output_np, output_list = decoder(output, threshold=0.4)
     plot_skeleton(black, output_list, thick=2)
