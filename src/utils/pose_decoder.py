@@ -75,21 +75,22 @@ def decoder(output):
     Arg:
         output: (18x64x64 ndarray) heatmap
     Return:
-        op_np: (18x2 ndarray) joints coordinate in heatmap
+        op_np: (18x2 ndarray) joints coordinate in hea*tmap
         op_list: (18x2 list) joints coordinate in image
     """
     op_np = np.zeros((len(parts), 2), dtype=int)
     for part in range(len(parts)):
-        part_output = output[part, :, :]
-        if part_output.max() >= 0.4:
-            op_np[part][0] = np.where(part_output == part_output.max())[0][0]
-            op_np[part][1] = np.where(part_output == part_output.max())[1][0]
+        part_output = output[:, part, :, :]
+        if part_output.max() >= 0.2:
+            print(np.where(part_output == part_output.max()))
+            op_np[part][0] = np.where(part_output == part_output.max())[1]
+            op_np[part][1] = np.where(part_output == part_output.max())[2]
         else:
             op_np[part][0] = -1
             op_np[part][1] = -1
     op_list = [[0, 0]] * len(parts)  #For drawing
     for part in range(len(parts)):
-        op_list[part] = [op_np[part][0] * 10, op_np[part][1] * 10 - 180]  # *640/64 scaling to the image size
+        op_list[part] = [op_np[part][1] * 10, op_np[part][0] * 10]  # *640/64 scaling to the image size
     return op_np, op_list
 
 

@@ -47,6 +47,10 @@ def get_head_size(target):
     n = target.shape[0]
     head_size = np.sqrt(4*(target[:, 0, 0] - target[:, 1, 0])**2 + 4*(target[:, 0, 1] - target[:, 1, 1])**2)
 
+    for i in range(n):
+        if sum(target[i, 0:2, :] == -1):
+            head_size[i] = 20
+
     return head_size
 
 
