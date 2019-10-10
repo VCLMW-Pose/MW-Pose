@@ -38,6 +38,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
+from src.model.resnet34 import ResNet34
 
 __all__ = ['DeSeqNetProj', 'saveWeight', 'loadWeight']
 
@@ -121,73 +122,93 @@ def loadWeight(model, weights, ptr):
     return ptr
 
 class bottleNeck(nn.Module):
-    def __init__(self, inChannel, outChannel, stride = 1, leaky = False):
+    def __init__(self, inChannel, outChannel, stride=1, leaky=False, dropout=0):
         super(bottleNeck, self).__init__()
         self.conv1 = nn.Conv2d(inChannel, outChannel//2, kernel_size=1, stride=stride, padding=0)
+        self.drop1 = nn.Dropout2d(dropout)
         self.bn1 = nn.BatchNorm2d(outChannel//2, eps=0.001, momentum=0.01)
         self.conv2 = nn.Conv2d(outChannel//2, outChannel//2, kernel_size=3, padding=1)
+        self.drop2 = nn.Dropout2d(dropout)
         self.bn2 = nn.BatchNorm2d(outChannel//2, eps=0.001, momentum=0.01)
         self.conv3 = nn.Conv2d(outChannel//2, outChannel, kernel_size=1, padding=0)
+        self.drop3 = nn.Dropout2d(dropout)
         self.bn3 = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
 
         if leaky:
-            self.relu = nn.LeakyReLU(inplace=True)
+            self.relu1 = nn.LeakyReLU(inplace=False)
+            self.relu2 = nn.LeakyReLU(inplace=False)
         else:
-            self.relu = nn.ReLU(inplace=True)
+            self.relu1 = nn.ReLU(inplace=False)
+            self.relu2 = nn.ReLU(inplace=False)
+
         self.skipConv = nn.Conv2d(inChannel, outChannel, kernel_size=1, padding=0)
+        self.skipdrop = nn.Dropout2d(dropout)
         self.skipBn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
         self.stride = stride
+
 
     def forward(self, x):
         residual = x
 
         out = self.conv1(x)
+        out = self.drop1(out)
         out = self.bn1(out)
-        out = self.relu(out)
+        out = self.relu1(out)
         out = self.conv2(out)
+        out = self.drop2(out)
         out = self.bn2(out)
-        out = self.relu(out)
+        out = self.relu2(out)
         out = self.conv3(out)
+        out = self.drop3(out)
         out = self.bn3(out)
 
         residual = self.skipConv(residual)
+        residual = self.skipdrop(residual)
         residual = self.skipBn(residual)
-        out += residual
+
+        out = out + residual
 
         return out
 
 class downSample2d(nn.Module):
-    def __init__(self, inChannel, outChannel, stride = 2, leaky = False):
+    def __init__(self, inChannel, outChannel, stride=[2, 2], leaky=False, dropout=0):
         super(downSample2d, self).__init__()
         self.conv = nn.Conv2d(inChannel, outChannel, kernel_size=3, stride=stride, padding=1)
+        self.drop = nn.Dropout2d(dropout)
         self.bn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
 
         if leaky:
-            self.relu = nn.LeakyReLU(inplace=True)
+            self.relu = nn.LeakyReLU(inplace=False)
         else:
-            self.relu = nn.ReLU(inplace=True)
+            self.relu = nn.ReLU(inplace=False)
+
+        self.dropout = dropout
         self.stride = stride
     
     def forward(self, x):
         out = self.conv(x)
+        out = self.drop(out)
         out = self.bn(out)
         out = self.relu(out)
+
         return out
 
 class upSample2d(nn.Module):
-    def __init__(self, inChannel, outChannel, stride=2, leaky=False):
+    def __init__(self, inChannel, outChannel, stride=2, leaky=False, dropout=0):
         super(upSample2d, self).__init__()
         self.convTran = nn.ConvTranspose2d(inChannel, outChannel, kernel_size=3, stride=stride, padding=1)
+        self.drop = nn.Dropout2d(dropout)
         self.bn = nn.BatchNorm2d(outChannel, eps=0.001, momentum=0.01)
 
         if leaky:
-            self.relu = nn.LeakyReLU(inplace=True)
+            self.relu = nn.LeakyReLU(inplace=False)
         else:
-            self.relu = nn.ReLU(inplace=True)
+            self.relu = nn.ReLU(inplace=False)
         self.stride = stride
 
     def forward(self, x):
         out = self.convTran(x)
+        out = self.drop(out)
         out = self.bn(out)
         out = self.relu(out)
         return out
@@ -208,126 +229,128 @@ class DeSeqNetProj(nn.Module):
     accuracy with significantly increased computation. We select one of
     ReLU or LeakyReLU as activation function through the model.
     '''
-    def __init__(self, numHidden, numRNN, leaky=False, rnnType="GRU", concatenateNum=0):
+    def __init__(self, leaky=False, rnnType="GRU", concatenateNum=0):
         super(DeSeqNetProj, self).__init__()
+
+        self.leaky = leaky
+        self.rnnType = rnnType
+        self.concatenateNum = concatenateNum
 
         # Build up two channels of encoder for the horizontal projection and
         # the perpendicular projection of RF signal energies.
         self.encoderX = self.buildEncoder()
         self.encoderY = self.buildEncoder()
 
+        self.linear = nn.Linear(1024, 1024)
         # Sequential processing layers, GRU, LSTM or QRNN, decided by input
         # parameter rnnType
-        if (rnnType == "GRU"):
-            self.rnns = [nn.GRU(32 if i == 0 else numHidden, numHidden if i == numRNN - 1 else 32, 1, dropout=0)
-                        for i in range(numRNN)]
-        elif(rnnType == "LSTM"):
-            self.rnns = [nn.LSTM(32 if i == 0 else numHidden, numHidden if i == numRNN - 1 else 32, 1, dropout=0)
-                         for i in range(numRNN)]
+        # if (rnnType == "GRU"):
+        #     self.rnns = [nn.GRU(32 if i == 0 else numHidden, numHidden if i == numRNN - 1 else 32, 1, dropout=0)
+        #                 for i in range(numRNN)]
+        # elif(rnnType == "LSTM"):
+        #     self.rnns = [nn.LSTM(32 if i == 0 else numHidden, numHidden if i == numRNN - 1 else 32, 1, dropout=0)
+        #                  for i in range(numRNN)]
 
         # Decoder receives a set of aligned characteristic vectors to predict
         # confidence map of spatial location of key points.
         self.decoder = self.buildDecoder()
 
-        self.leaky = leaky
-        self.rnnType = rnnType
-        self.concatenateNum = concatenateNum
-
-    def forward(self, x, hidden):
+    def forward(self, x):
         '''
         Forward propagation of DeSeqNet includes a series of shortcut channels.
         For each encoder, there are shortcut channels in each down
         :param x:
         '''
-        horiProj = x[:, :, 0]
-        perpProj = x[:, :, 1]
+        horiProj = x[:, :, 0, :, :]
+        perpProj = x[:, :, 1, :, :]
 
         # Forward propagation of encoderX
         outx = self.encoderX[0](horiProj)
-        for i in range(4): outx = self.encoderX[i](outx)
+        for i in range(1, 5): outx = self.encoderX[i](outx)
 
         # Downsample layers
-        for i in range(3):
+        for i in range(1, 4):
             outx = self.encoderX[2 + 3*i](outx)
             # Copy tensor in skip channel
             route = outx
 
             outx = self.encoderX[3 + 3*i](outx)
             outx = self.encoderX[4 + 3*i](outx)
-            outx = torch.cat((outx, route), 2)
+            outx = torch.cat((outx, route), 1)
 
         outx = self.encoderX[14](outx)
-        outx = self.encoderX[15](outx)
-        outx = self.encoderX[16](outx)
-        outx = outx.view(-1, 1)
+        outx = outx.view(outx.size(0), -1)
 
         # Forward propagation of encoderY
         outy = self.encoderY[0](perpProj)
-        for i in range(4): outy = self.encoderY[i](outy)
+        for i in range(1, 5): outy = self.encoderY[i](outy)
 
         # Downsample layers
-        for i in range(3):
+        for i in range(1, 4):
             outy = self.encoderY[2 + 3 * i](outy)
             route = outy
 
             outy = self.encoderY[3 + 3 * i](outy)
             outy = self.encoderY[4 + 3 * i](outy)
-            outy = torch.cat((outy, route), 2)
+            outy = torch.cat((outy, route), 1)
 
         outy = self.encoderY[14](outy)
-        outy = self.encoderY[15](outy)
-        outy = self.encoderY[16](outy)
-        outy = outy.view(-1, 1)
+        outy = outy.view(outy.size(0), -1)
+#        outy.backward()
 
         # Concatenate characteristic vectors get by encoderX and encoderY
         # as the input vector to RNNs
-        characVec = torch.cat((outx, outy), 0)
-        for rnn, hid in zip(self.rnns, hidden):
-            characVec, hid = rnn(characVec, hid)
+        characVec = torch.cat((outx, outy), 1)
+        # for rnn, hid in zip(self.rnns, hidden):
+        #    characVec, hid = rnn(characVec, hid)
+        characVec = self.linear(characVec)
+        n = characVec.shape[0]
+        characVec_ = torch.zeros([n, 256, 2, 2]).cuda()
 
+        for i in range(0, n):
+            characVec_[i, :, :, :] = characVec[i, :].reshape([256, 2, 2])
         # Decoder propagation pipeline
-        out = self.decoder[0](characVec)
-        out = self.decoder[1](out)
-        out = self.decoder[2](out)
+        out = self.decoder[0](characVec_)
 
         # Upsample layers
-        for i in range(3):
+        for i in range(1, 4):
             route = out
+            out = self.decoder[3*i - 2](out)
+            out = self.decoder[3*i - 1](out)
+
+            out = torch.cat((out, route), 1)
             out = self.decoder[3*i](out)
-            out = self.decoder[3*i + 1](out)
 
-            out = torch.cat((out, route), 2)
-            out = self.decoder[3*i + 2](out)
-
-        for i in range(12, 16): out = self.decoder[i](out)
-        return x, hidden
+        for i in range(10, 15):
+            out = self.decoder[i](out)
+        return out
 
     def buildEncoder(self):
         layer = []
 
         # initial feature extraction layers
         layer.append(nn.Conv2d(1, 16, kernel_size=1, stride=1, padding=0))
-        layer.append(nn.BatchNorm2d(1, eps=0.001, momentum=0.01))
+        layer.append(nn.BatchNorm2d(16, eps=0.001, momentum=0.01))
         if self.leaky:
-            layer.append(nn.LeakyReLU(inplace=True))
+            layer.append(nn.LeakyReLU(inplace=False))
         else:
-            layer.append(nn.ReLU(inplace=True))
+            layer.append(nn.ReLU(inplace=False))
 
         # first two bottleneck blocks
-        layer.append(bottleNeck(16, 32, 1, self.leaky))
-        layer.append(bottleNeck(32, 16, 1, self.leaky))
+        layer.append(bottleNeck(16, 32, 1, leaky = self.leaky))
+        layer.append(bottleNeck(32, 32, 1, leaky = self.leaky))
 
         # The 13x60 input go through 2 downsample layers and reach the dimension
         # of 2x8. Then align the tenser elements and get a characteristic vector.
-        for i in range(2):
-            layer.append(downSample2d(16*2**(i - 1), 32*2**(i - 1), self.leaky))
-            layer.append(bottleNeck(32*2**(i - 1), 64*2**(i - 1), self.leaky))
-            layer.append(bottleNeck(64*2**(i - 1), 32*2**(i - 1), self.leaky))
+        for i in range(1, 3):
+            layer.append(downSample2d(int(32*2**(i - 1)), int(32*2**(i - 1)), leaky = self.leaky))
+            layer.append(bottleNeck(int(32*2**(i - 1)), int(64*2**(i - 1)), leaky = self.leaky))
+            layer.append(bottleNeck(int(64*2**(i - 1)), int(32*2**(i - 1)), leaky = self.leaky))
 
-        for i in range(2):
-            layer.append(downSample2d(128, 128, self.leaky))
-            layer.append(bottleNeck(128, 256, self.leaky))
-            layer.append(bottleNeck(256, 128, self.leaky))
+        layer.append(downSample2d(128, 128, leaky = self.leaky))
+        layer.append(bottleNeck(128, 256, leaky = self.leaky))
+        layer.append(bottleNeck(256, 128, leaky = self.leaky))
+        layer.append(downSample2d(256, 32, leaky = self.leaky))
 
         return nn.ModuleList(layer)
 
@@ -336,26 +359,30 @@ class DeSeqNetProj(nn.Module):
         layer = []
 
         # First two upsample layers
-        for i in range(2):
-            layer.append(bottleNeck(128, 256, self.leaky))
-            layer.append(bottleNeck(256, 128, self.leaky))
-            layer.append(upSample2d(128, 128, self.leaky))
+        layer.append(upSample2d(256, 64, leaky = self.leaky))
+        layer.append(bottleNeck(64, 128, leaky = self.leaky))
+        layer.append(bottleNeck(128, 64, leaky = self.leaky))
+        layer.append(upSample2d(128, 64, leaky = self.leaky))
 
         # Two upsample layers
-        for i in range(2):
-            layer.append(bottleNeck(128/(2**(i - 1)), 256/(2**(i - 1)), self.leaky))
-            layer.append(bottleNeck(256/(2**(i - 1)), 128/(2**(i - 1)), self.leaky))
-            layer.append(upSample2d(128/(2**(i - 1)), 64/(2**(i - 1)), self.leaky))
+        for i in range(1, 2):
+            layer.append(bottleNeck(int(64/(2**(i - 1))), int(128/(2**(i - 1))), leaky = self.leaky))
+            layer.append(bottleNeck(int(128/(2**(i - 1))), int(64/(2**(i - 1))), leaky = self.leaky))
+            layer.append(upSample2d(int(128/(2**(i - 1))), int(32/(2**(i - 1))), leaky = self.leaky))
 
-        layer.append(bottleNeck(16, 32, 1, self.leaky))
-        layer.append(bottleNeck(32, 16, 1, self.leaky))
+        layer.append(bottleNeck(32, 64, leaky = self.leaky))
+        layer.append(bottleNeck(64, 32, leaky = self.leaky))
+        layer.append(upSample2d(64, 32, leaky = self.leaky))
+        layer.append(bottleNeck(32, 24, 1, leaky = self.leaky))
+        layer.append(bottleNeck(24, 18, 1, leaky = self.leaky))
+        layer.append(upSample2d(18, 18, leaky=self.leaky))
 
         if self.leaky:
-            layer.append(nn.LeakyReLU(inplace=True))
+            layer.append(nn.LeakyReLU(inplace=False))
         else:
-            layer.append(nn.LeakyReLU(inplace=True))
-        layer.append(nn.ConvTranspose2d(16, 1, kernel_size=1, stride=1, padding=0))
-        layer.append(nn.BatchNorm2d(1, eps=0.001, momentum=0.01))
+            layer.append(nn.LeakyReLU(inplace=False))
+        layer.append(nn.ConvTranspose2d(18, 18, kernel_size=1, stride=2, padding=0))
+        layer.append(nn.BatchNorm2d(18, eps=0.001, momentum=0.01))
 
         return nn.ModuleList(layer)
 
@@ -420,9 +447,228 @@ class DeSeqNetFull(nn.Module):
     Tricks like weight decay and dropout are adopted to handle over fitting,
     since the model is trained on a tiny dataset.
     '''
+    def __init__(self, num_hid, num_rnn, leaky=False, rnn_type="GRU", concat_num=0, dropout=0):
+        '''
+
+        :param num_hid:
+        :param num_rnn:
+        :param leaky:
+        :param rnn_type:
+        :param concat_num:
+        :param weight_decay:
+        :param dropout:
+        '''
+        self.num_hid = num_hid
+        self.num_rnn = num_rnn
+        self.leaky = leaky
+        self.rnn_type = rnn_type
+        self.concat_num = concat_num
+        self.dropout = dropout
+
+        self.encoder = self.buildDecoder()
+        return
+
+    def forward(self):
+
+        return
+
+    def buildEncoder(self):
+        layer = []
+
+        # initial feature extraction layers
+        layer.append(nn.Conv2d(60, 60, kernel_size=1, stride=1, padding=0))
+        layer.append(nn.Dropout2d(p=self.dropout))
+        layer.append(nn.BatchNorm2d(60, eps=0.001, momentum=0.01))
+        if self.leaky:
+            layer.append(nn.LeakyReLU(inplace=True))
+        else:
+            layer.append(nn.ReLU(inplace=True))
+
+        # first two bottleneck blocks
+        layer.append(bottleNeck(60, 60, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(60, 60, 1, self.leaky, self.dropout))
+
+        # The 13x13x60 input go through 2 downsample layers and reach the dimension
+        # of 2x2x8. Then align the tenser elements and get a characteristic vector.
+        layer.append(downSample2d(60, 120, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(120, 240, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(240, 120, 1, self.leaky, self.dropout))
+
+        # Shortcut layer, concatenate intermediate result.
+        layer.append(downSample2d(240, 120, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(120, 240, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(240, 120, 1, self.leaky, self.dropout))
+
+        # Down sample layer 3 and another concatenate intermediate result.
+        layer.append(downSample2d(240, 120, 2, self.leaky, self.dropout))
+
+        return nn.ModuleList(layer)
+
+    def buildDecoder(self):
+        # The characteristic vector is transformed to 2x2x256. The dimension of
+        # confidence map predicted by decoder is 128x128x16. Which requires three
+        # times of up sample procedure.
+        layer = []
+
+        # First upsample layer
+        layer.append(upSample2d(256, 256, 2, self.leaky, self.dropout))
+        layer.append(nn.Conv2d(256, 256, kernel_size=1, stride=1, padding=0))
+        layer.append(nn.Dropout2d(p=self.dropout))
+        layer.append(nn.BatchNorm2d(256, eps=0.001, momentum=0.01))
+        if self.leaky:
+            layer.append(nn.LeakyReLU(inplace=True))
+        else:
+            layer.append(nn.ReLU(inplace=True))
+
+        # Dimension: 8x8x256
+        layer.append(upSample2d(256, 128, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(128, 256, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(256, 128, 1, self.leaky, self.dropout))
+
+        # Upsample layer and first shortcut layer, dimension: 16x16x256
+        layer.append(upSample2d(256, 128, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(128, 128, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(128, 128, 1, self.leaky, self.dropout))
+
+        # second shortcut layer
+        layer.append(upSample2d(256, 128, 2, self.leaky, self.dropout))
+        layer.append(bottleNeck(128, 128, 1, self.leaky, self.dropout))
+        layer.append(bottleNeck(128, 256, 1, self.leaky, self.dropout))
+
+
+
+        return
+
+    def saveWeight(self):
+        return
+
+    def loadWeight(self):
+        return
 
 class QDeSeqNetFull(nn.Module):
     '''
-    QDeseqNetFull adopts the blocks introduced by quasi-recurrent neural network
-    by
+<<<<<<< Updated upstream
+    QDeSeqNetFull improves the sequential processing capability of DeSeqNet
+    by adapting Quasi-Recurrent Neural Network as the basic build block.
+    It takes the row RF signal as input but not the projection heat maps.
     '''
+
+    def __init__(self, num_hid, num_rnn, leaky=False, rnn_type="GRU", concat_num=0,
+                 weight_decay=0, dropout=0):
+        '''
+
+        :param num_hid:
+        :param num_rnn:
+        :param leaky:
+        :param rnn_type:
+        :param concat_num:
+        :param weight_decay:
+        :param dropout:
+        '''
+        return
+
+    def forward(self):
+        return
+
+    def buildEncoder(self):
+        return
+
+    def buildDecoder(self):
+        return
+
+    def saveWeight(self):
+        return
+
+    def loadWeight(self):
+        return
+
+class DeSeqNetTest(nn.Module):
+    '''
+    Densely connected sequential processing network is a feature extraction
+    and prediction model with sequential input process capability. The basic
+    block of DeSeqNet includes two encoders---encoderX and encoderY, one for
+    the perpendicular energy projection another for the horizontal energy
+    projection; one\several sequential processing layer---GRU, LSTM or QRNN
+    whose input is the characteristic vectors extracted with encoders.
+    Sequential process capability grant the model robustness to the missing
+    of energy reflection from certain limbs and guarantee refined outputs;
+    One decoder, which generate prediction confidence maps of keypoints.
+
+    Further concatenation of the basic DeSeqNet model, more or less improve its
+    accuracy with significantly increased computation. We select one of
+    ReLU or LeakyReLU as activation function through the model.
+    '''
+    def __init__(self, leaky=False, rnnType="GRU", concatenateNum=0):
+        super(DeSeqNetTest, self).__init__()
+
+        self.leaky = leaky
+        self.rnnType = rnnType
+        self.concatenateNum = concatenateNum
+
+        # Build up two channels of encoder for the horizontal projection and
+        # the perpendicular projection of RF signal energies.
+        self.encoderX = ResNet34(512)
+        self.encoderY = ResNet34(512)
+
+        # self.linear = nn.Linear(1024, 1024)
+        # Sequential processing layers, GRU, LSTM or QRNN, decided by input
+        # parameter rnnType
+        # if (rnnType == "GRU"):
+        #     self.rnns = [nn.GRU(32 if i == 0 else numHidden, numHidden if i == numRNN - 1 else 32, 1, dropout=0)
+        #                 for i in range(numRNN)]
+        # elif(rnnType == "LSTM"):
+        #     self.rnns = [nn.LSTM(32 if i == 0 else numHidden, numHidden if i == numRNN - 1 else 32, 1, dropout=0)
+        #                  for i in range(numRNN)]
+
+        # Decoder receives a set of aligned characteristic vectors to predict
+        # confidence map of spatial location of key points.
+        # self.decoder = self.buildDecoder()
+
+        self.decoder = nn.Sequential(
+            UpBlock(512, 256, upsample=True),
+            UpBlock(256, 128, upsample=True),
+            UpBlock(128, 64, upsample=True),
+            UpBlock(64, 32, upsample=True),
+            UpBlock(32, 18, upsample=False),
+            nn.Conv2d(18, 18, 1, 1),
+            # nn.LeakyReLU()d
+        )
+
+    def forward(self, x):
+        '''
+        Forward propagation of DeSeqNet includes a series of shortcut channels.
+        For each encoder, there are shortcut channels in each down
+        :param x:
+        '''
+        horiProj = x[:, :, 0, :, :]
+        perpProj = x[:, :, 1, :, :]
+
+        # Forward propagation of encoderX
+        outx = self.encoderX(horiProj)
+
+        # Forward propagation of encoderY
+        outy = self.encoderY(perpProj)
+
+        out = outx + outy
+        out = self.decoder(out)
+
+        return out
+
+class UpBlock(nn.Module):
+    def __init__(self, inplanes, planes, upsample=False):
+        super(UpBlock, self).__init__()
+        self.conv = nn.Conv2d(inplanes, planes, 1, 1)
+        self.bn = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.will_ups = upsample
+
+    def forward(self, x):
+        if self.will_ups:
+            x = nn.functional.interpolate(x,
+                scale_factor=2, mode="bilinear", align_corners=True)
+
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+
+        return x

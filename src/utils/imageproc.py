@@ -88,11 +88,11 @@ def sumup_horizontal(img):
     Returns:
          Adding all slices of heat map to two-dimension matrix perpendicularly
     '''
-    n = img.shape[0]
-    sumimg = img[0, :, :]
+    n = img.shape[2]
+    sumimg = img[:, :, 0]
 
     for i in range(1, n):
-        sumimg = sumimg + img[i, :, :]
+        sumimg = sumimg + img[:, :, i]
 
     return sumimg
 

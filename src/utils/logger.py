@@ -26,9 +26,9 @@ class logger():
         self.resume = resume
         # Start from scratch
         if resume == False:
-            self.file = open(os.path.join('../' + file_path, title + '.txt'), 'w')
+            self.file = open(os.path.join('../' + file_path), 'w')
         else: # Resume from checkpoint
-            self.file = open(os.path.join('../' + file_path, title + '.txt'), 'r')
+            self.file = open(os.path.join('../' + file_path), 'r')
             # Reading data tags
             tags = self.file.readline()
             self.tags = tags.rstrip().split('\t')

@@ -472,7 +472,6 @@ def move_anno(anno_dir, dir):
                 if os.path.exists(src) and os.path.exists(dst):
                     shutil.copy(src, dst)
 
-
 def radar_out(dir):
     anno = AnnotationLoader(dir)
     black = np.zeros((360, 640, 3))
@@ -527,12 +526,12 @@ def assemble(datadir):
 
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
-    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_1'
+    dir = 'F:/capref/'
     # dir = '/Users/midora/Desktop/MW-Pose-old/test/_12.0'
     # dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
-    # pop_box()
-    refine(dir, 'drag', thread=0, os=mac)
+    # pop_box()0
+    refine(dir, 'drag', thread=0, os=win)
     # distribute(dir)
     # assemble(dir)
     print('Completed!')
