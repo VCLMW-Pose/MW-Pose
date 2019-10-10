@@ -409,6 +409,7 @@ def refine(dir, mode, thread=0, os=mac):
         anno.img = anno.lood_img(idx)
         # anno.img -= anno.img #  To show black canvas
         img = anno.img.copy()
+        # img = np.zeros((360, 640, 3))
         # cv2.namedWindow(anno.window_name)
         anno.plot_skeleton(img, anno.cur_file, thick=2)
         if mode == 'drag':
@@ -474,8 +475,8 @@ def move_anno(anno_dir, dir):
 
 def radar_out(dir):
     anno = AnnotationLoader(dir)
-    black = np.zeros((360, 640, 3))
     for idx, anno.cur_file in enumerate(anno.data_files):
+        black = np.zeros((360, 640, 3))
         cv2.namedWindow('Black')
         anno.plot_skeleton(black, anno.cur_file, 2)
         cv2.startWindowThread()
@@ -526,13 +527,14 @@ def assemble(datadir):
 
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
-    dir = 'F:/capref/'
-    # dir = '/Users/midora/Desktop/MW-Pose-old/test/_12.0'
+    # dir = 'F:/capref/'
+    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_12.0'
     # dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
     # pop_box()0
+    # radar_out(dir)
     refine(dir, 'drag', thread=0, os=win)
     # distribute(dir)
     # assemble(dir)
-    print('Completed!')
+    # print('Completed!')
     exit()
