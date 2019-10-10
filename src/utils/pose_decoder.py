@@ -10,7 +10,9 @@ Vision Cognition Laboratory, 211189 Nanjing China
 '''
 
 import numpy as np
+import os
 import cv2
+from src.utils.heatmap import *
 
 parts = ['nose', 'neck', 'rShoulder',
          'rElbow', 'rWrist', 'lShoulder',
@@ -22,11 +24,9 @@ parts = ['nose', 'neck', 'rShoulder',
 def plot_skeleton(img, output, thick=2):
     '''
         Args:
-            window_name:    (string)
-            img:            (PILImage) image for annotating
-            data_file:      (string) file name e.g. 1551601527845.jpg
+            img:            (ndarray) image for annotating
+            output:         (18x2 list) joints coordinate in image
             thick:          (int) thick of the line
-            key:            (int) the length of time the window stays
     '''
     jointscoor = {}
     for i in range(len(parts)):
@@ -70,26 +70,29 @@ def plot_skeleton(img, output, thick=2):
             img = cv2.circle(img, jointscoor[joint], 3, (68, 147, 200), -1)
     return img
 
-def decoder(output):
+
+
+def decoder(output, threshold=0.4):
     """
     Arg:
-        output: (18x64x64 ndarray) heatmap
+        output:     (18x64x64 ndarray) heatmap
     Return:
-        op_np: (18x2 ndarray) joints coordinate in heatmap
-        op_list: (18x2 list) joints coordinate in image
+        op_np:      (18x2 ndarray) joints coordinate in heatmap
+        op_list:    (18x2 list) joints coordinate in image
     """
     op_np = np.zeros((len(parts), 2), dtype=int)
     for part in range(len(parts)):
         part_output = output[part, :, :]
-        if part_output.max() >= 0.4:
-            op_np[part][0] = np.where(part_output == part_output.max())[0][0]
-            op_np[part][1] = np.where(part_output == part_output.max())[1][0]
+        if part_output.max() >= threshold:
+            op_np[part][0] = np.where(part_output == part_output.max())[1][0]
+            op_np[part][1] = np.where(part_output == part_output.max())[0][0]
         else:
             op_np[part][0] = -1
             op_np[part][1] = -1
     op_list = [[0, 0]] * len(parts)  #For drawing
     for part in range(len(parts)):
-        op_list[part] = [op_np[part][0] * 10, op_np[part][1] * 10 - 180]  # *640/64 scaling to the image size
+        op_list[part] = [op_np[part][0] * 10, op_np[part][1] * 10 - 180]
+        # *640/64 scaling to the image size; -180 no padding
     return op_np, op_list
 
 
@@ -98,9 +101,10 @@ if __name__ == "__main__":
     output = np.random.random((18, 64, 64))
     black = np.zeros((360, 640, 3))
     cv2.namedWindow('Black')
-    output_np, output_list = decoder(output)
+    output_np, output_list = decoder(output, threshold=0.4)
     plot_skeleton(black, output_list, thick=2)
     cv2.imshow('Black', black)
     while True:
         if cv2.waitKey(10) & 0xFF == ord('\r'):
             break
+    exit()
