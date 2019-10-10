@@ -527,7 +527,7 @@ def assemble(datadir):
 
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
-    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_9.0'
+    dir = '/Users/midora/Documents/MW-Pose-dataset/dataset/_1'
     # dir = '/Users/midora/Desktop/MW-Pose-old/test/_12.0'
     # dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
