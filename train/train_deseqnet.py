@@ -51,9 +51,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=500, help="number of epochs")
     parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
-    parser.add_argument('--data_path', type=str, default="F:/captest", help="directory of dataset")
+    parser.add_argument('--data_path', type=str, default="../data/capref2", help="directory of dataset")
     parser.add_argument("--gradient_accumulations", type=int, default=2, help="number of gradient accums before step")
-    parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest_490.pth", help="if specified starts from checkpoint model")
+    #parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest_490.pth",
+    # help="if specified starts from checkpoint model")
+    parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--checkpoint_interval", type=int, default=10, help="interval between saving model weights")
     parser.add_argument("--evaluation_interval", type=int, default=10, help="interval evaluations on validation set")
@@ -155,21 +157,19 @@ if __name__ == "__main__":
             n = len(keypointnames)
             PCKh = np.zeros([8, n + 1])
             thre = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.75, 1.00]
-            batches_done = 0
 
-            for batch_i, (targets, signal, GT) in enumerate(validloader):
-                batches_done = batch_i + 1
+            for batch_i, (_, val_signal, GT) in enumerate(validloader):
 
-                signal = Variable(signal.to(device), requires_grad=False)
-                targets = Variable(targets.to(device), requires_grad=False)
+                val_signal = Variable(val_signal.to(device), requires_grad=False)
 
-                outputs = model(signal)
-                pred = pose_decode(outputs)
-
+                val_outputs = model(val_signal)
+                val_outputs = val_outputs.cpu()
+                pred = pose_decode(val_outputs)
+                print('[Valid, Batch %d/%d]\n' % (batch_i, len(validloader)))
                 for i in range(8):
                     PCKh[i, 0:-1] = PCKh[i, 0:-1] + eval_pckh(pred, GT, n, thre[i])
 
-            PCKh[:] = PCKh[:]/batches_done
+            PCKh[:] = PCKh[:]/len(validloader)
             for i in range(8):
                 PCKh[i, -1] = np.sum(PCKh[i, 0:-1])/n
                 logger_val.append(list(PCKh[i, :]))
@@ -178,7 +178,7 @@ if __name__ == "__main__":
                 for keypoint_i, name in enumerate(keypointnames):
                     log_str += '[%s, %f]' % (name, PCKh[i, keypoint_i])
 
-                log_str += '[average, %f]' % PCKh[i, -1]
+                log_str += '[average, %f]\n' % PCKh[i, -1]
                 print(log_str)
 
         if epoch % opt.checkpoint_interval == 0:

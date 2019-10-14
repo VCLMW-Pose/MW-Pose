@@ -113,6 +113,7 @@ class deSeqNetLoader(Dataset):
         with open(os.path.join(dataDirectory, names)) as namefile:
             self.names = namefile.readlines()
             self.names = [line.rstrip() for line in self.names]
+            # self.names = self.names[0:8]
 
         # remainder = length%self.frames
         # self.anno = self.anno[:length - remainder - 1]
