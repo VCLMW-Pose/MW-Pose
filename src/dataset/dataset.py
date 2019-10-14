@@ -131,7 +131,7 @@ class deSeqNetLoader(Dataset):
         file_name = self.names[idx]
 
         # Get confidence map ground truth and signal
-        conf_maps = self.getGroundTruth(idx)
+        conf_maps, GT = self.getGroundTruth(idx)
         signal = self.readSignal(file_name)
 
         # Data augmentation by rotating both signal and confidence map
@@ -141,7 +141,7 @@ class deSeqNetLoader(Dataset):
         conf_maps = torch.from_numpy(conf_maps.astype(np.float32))
         signal = torch.from_numpy(signal.astype(np.float32)).div(signal.max())
 
-        return conf_maps, signal
+        return conf_maps, signal, GT
 
     def __len__(self):
         return len(self.names)
@@ -192,6 +192,7 @@ class deSeqNetLoader(Dataset):
         annofile = open(os.path.join(self.dataDirectory, 'labels', name + '.txt'))
         anno = annofile.readlines()
         anno = [line.rstrip() for line in anno]
+        GT   = np.zeros([len(anno), 2])
 
         # Allocate memory for confidence map
         conf_maps = np.zeros((self.MAX_POINTNUM, self.GTSize, self.GTSize))
@@ -207,6 +208,7 @@ class deSeqNetLoader(Dataset):
             coord = anno[idx]
             coord = coord.split(' ')
             coord = [int(coord[0]), int(coord[1])]
+            GT[idx, :] = coord
             if coord[0] == -1:
                 continue
 
@@ -221,7 +223,7 @@ class deSeqNetLoader(Dataset):
             # heatmap = plt.pcolormesh(conf_maps[idx, :, :], cmap='jet')
             # plt.show()
 
-        return conf_maps
+        return conf_maps, GT
 
     def readSignal(self, directory):
         # Open the directory in the form of read only binary file

@@ -75,20 +75,30 @@ def plot_skeleton(img, output, thick=2):
 def decoder(output, threshold=0.2):
     """
     Arg:
-        output:     (18x64x64 ndarray) heatmap
+        output:     (nx18x64x64 ndarray) heatmap
     Return:
-        op_np:      (18x2 ndarray) joints coordinate in heatmap
-        op_list:    (18x2 list) joints coordinate in image
+        op_np:      (nx18x2 ndarray) joints coordinate in heatmap
+        op_list:    (nx18x2 list) joints coordinate in image
     """
-    op_np = np.zeros((len(parts), 2), dtype=int)
+    # n = output.shape[0]
+    op_np = np.zeros((len(parts), 2), dtype = int)
+
+    # Parse heatmap outputs for every image
+
+    # Parse every class of keypoint
     for part in range(len(parts)):
         part_output = output[:, part, :, :]
+
+        # Keypoint detected
         if part_output.max() >= threshold:
-            op_np[part][0] = np.where(part_output == part_output.max())[1]
-            op_np[part][1] = np.where(part_output == part_output.max())[2]
+            # Collect position of keypoint in pixel
+            op_np[part, 0] = np.where(part_output == part_output.max())[1]
+            op_np[part, 1] = np.where(part_output == part_output.max())[2]
+
         else:
-            op_np[part][0] = -1
-            op_np[part][1] = -1
+            # Keypoint lost in heatmap
+            op_np[part, 0] = -1
+            op_np[part, 1] = -1
     op_list = [[0, 0]] * len(parts)  #For drawing
     for part in range(len(parts)):
         if op_np[part][0] != -1 and op_np[part][1] != -1:
@@ -98,7 +108,37 @@ def decoder(output, threshold=0.2):
         # *640/64 scaling to the image size; -180 no padding
     return op_np, op_list
 
+def pose_decode(heatmap, threshold = 0.2):
+    """
+        Arg:
+            output:     (nx18x64x64 ndarray) heatmap
+        Return:
+            op_np:      (nx18x2 ndarray) joints coordinate in heatmap
+            op_list:    (nx18x2 list) joints coordinate in image
+        """
+    n = heatmap.shape[0]
+    op_np = np.zeros((n, len(parts), 2), dtype=int)
 
+    # Parse heatmap outputs for every image
+    for img_idx in range(n):
+
+        # Parse every class of keypoint
+        for part in range(len(parts)):
+            part_output = heatmap[img_idx, part, :, :]
+
+            # Keypoint detected
+            if part_output.max() >= threshold:
+                # Collect position of keypoint in pixel
+                op_np[img_idx, part, 0] = np.where(part_output == part_output.max())[1]*10
+                op_np[img_idx, part, 1] = np.where(part_output == part_output.max())[0]*10 - 140
+
+            else:
+                # Keypoint lost in heatmap
+                op_np[img_idx, part, 0] = -1
+                op_np[img_idx, part, 1] = -1
+
+            # *640/64 scaling to the image size; -140 no padding
+    return op_np
 
 if __name__ == "__main__":
     output = np.random.random((18, 64, 64))

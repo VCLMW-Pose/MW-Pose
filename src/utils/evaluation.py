@@ -29,17 +29,19 @@
 ##################################################################################
 
 import numpy as np
+import torch
 
 
-def eval_pckh(pred, gt, keypointnum, range):
+def eval_pckh(pred, gt, keypointnum, thre):
+    gt = np.array(gt)
     head_size = get_head_size(gt)
     dist = get_dist_pckh(pred, gt, head_size, keypointnum)
 
     n = pred.shape[0]
-    pck = np.zeros(18)
+    pck = np.zeros(keypointnum)
 
-    for i in range(18):
-        pck[i] = sum(dist[:, i] <= range)/n
+    for i in range(keypointnum):
+        pck[i] = sum(dist[:, i] <= thre)/n
     return pck
 
 
@@ -48,8 +50,8 @@ def get_head_size(target):
     head_size = np.sqrt(4*(target[:, 0, 0] - target[:, 1, 0])**2 + 4*(target[:, 0, 1] - target[:, 1, 1])**2)
 
     for i in range(n):
-        if sum(target[i, 0:2, :] == -1):
-            head_size[i] = 20
+        if np.sum(target[i, 0:2, :] == -1):
+            head_size[i] = 80
 
     return head_size
 
@@ -58,9 +60,11 @@ def get_dist_pckh(pred, gt, refdist, keypointnum):
     # pred nx18x2
     # dist is a nx18 matrix
     n = pred.shape[0]
-    dist = np.zeros(n, keypointnum)
+    dist = np.zeros([n, keypointnum])
 
     for i in range(n):
-        dist[i, :] = np.sqrt((pred[i, :, 0] - gt[i, :, 0])**2 + (pred[i, :, 1] - gt[i, :, 1])**2)/refdist[i, :]
+        # print((pred[i, :, 0] - gt[i, :, 0])**2)
+        # print(np.sqrt((pred[i, :, 0] - gt[i, :, 0])**2 + (pred[i, :, 1] - gt[i, :, 1])**2))
+        dist[i, :] = np.sqrt((pred[i, :, 0] - gt[i, :, 0])**2 + (pred[i, :, 1] - gt[i, :, 1])**2)/refdist[i]
 
     return dist

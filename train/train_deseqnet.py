@@ -41,6 +41,8 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from torch.autograd import grad
+from src.utils.pose_decoder import *
+from src.utils.evaluation import *
 from src.model.deseqnet import DeSeqNetProj, DeSeqNetTest
 from src.dataset import deSeqNetLoader
 from src.utils import logger, imwrite
@@ -51,10 +53,10 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
     parser.add_argument('--data_path', type=str, default="F:/captest", help="directory of dataset")
     parser.add_argument("--gradient_accumulations", type=int, default=2, help="number of gradient accums before step")
-    parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest_90.pth", help="if specified starts from checkpoint model")
+    parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest_490.pth", help="if specified starts from checkpoint model")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--checkpoint_interval", type=int, default=10, help="interval between saving model weights")
-    parser.add_argument("--evaluation_interval", type=int, default=1, help="interval evaluations on validation set")
+    parser.add_argument("--evaluation_interval", type=int, default=10, help="interval evaluations on validation set")
     parser.add_argument("--compute_map", default=False, help="if True computes mAP every tenth batch")
     parser.add_argument("--multiscale_training", default=True, help="allow for multi-scale training")
     opt = parser.parse_args()
@@ -67,10 +69,14 @@ if __name__ == "__main__":
         keypointnames = namefile.readlines()
         keypointnames = [line.rstrip() for line in keypointnames]
 
-    logger = logger('logger.txt')
+    logger_train = logger('logger.txt')
+    logger_val = logger('logger_val.txt')
     logger_tag = keypointnames.copy()
     logger_tag.append('total')
-    logger.set_tags(logger_tag)
+    logger_valtag = keypointnames.copy()
+    logger_valtag.append('average')
+    logger_train.set_tags(logger_tag)
+    logger_val.set_tags(logger_valtag)
 
     # Initiate model
     model = DeSeqNetTest().to(device)
@@ -87,9 +93,17 @@ if __name__ == "__main__":
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
-        shuffle=False,
+        shuffle=True,
         num_workers=opt.n_cpu,
         pin_memory=True,
+    )
+
+    validset = deSeqNetLoader(opt.data_path, valid=True)
+    validloader = torch.utils.data.DataLoader(
+        validset,
+        batch_size=opt.batch_size,
+        shuffle=False,
+        num_workers=opt.n_cpu,
     )
 
     # Define optimizer
@@ -98,7 +112,7 @@ if __name__ == "__main__":
     for epoch in range(opt.epochs):
         model.train()
         start_time = time.time()
-        for batch_i, (targets, signal) in enumerate(dataloader):
+        for batch_i, (targets, signal, _) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
             signal = Variable(signal.to(device))
@@ -119,7 +133,7 @@ if __name__ == "__main__":
                 accum_loss = accum_loss + loss
 
             losses.append(accum_loss.item())
-            logger.append(losses)
+            logger_train.append(losses)
             log_str += "[total: %f]\n" % accum_loss
             print(log_str)
             accum_loss.backward()
@@ -128,34 +142,47 @@ if __name__ == "__main__":
             optimizer.zero_grad()
 
         # Validation progress
-        # if epoch % opt.evaluation_interval == 0:
-        #     print("\n---- Evaluating Model ----")
-        #     # Evaluate the model on the validation set
-        #     precision, recall, AP, f1, ap_class = evaluate(
-        #         model,
-        #         path=valid_path,
-        #         iou_thres=0.5,
-        #         conf_thres=0.5,
-        #         nms_thres=0.5,
-        #         img_size=opt.img_size,
-        #         batch_size=8,
-        #     )
-        #     evaluation_metrics = [
-        #         ("val_precision", precision.mean()),
-        #         ("val_recall", recall.mean()),
-        #         ("val_mAP", AP.mean()),
-        #         ("val_f1", f1.mean()),
-        #     ]
-        #     logger.list_of_scalars_summary(evaluation_metrics, epoch)
+        if epoch % opt.evaluation_interval == 0:
+            model.eval()
+            print("\n---- Evaluating Model ----\n")
+            # Evaluate the model on the validation set
 
-        #    # Print class APs and mAP
-        #    ap_table = [["Index", "Class name", "AP"]]
-        #    for i, c in enumerate(ap_class):
-        #        ap_table += [[c, class_names[c], "%.5f" % AP[i]]]
-        #    print(AsciiTable(ap_table).table)
-        #    print(f"---- mAP {AP.mean()}")
+            # PCKh(8x18) stores the percentage of correct keypoint (head) during validation.
+            # They are respectively     PCKh@0.05               PCKh@0.10
+            #                           PCKh@0.20               PCKh@0.30
+            #                           PCKh@0.40               PCKh@0.50
+            #                           PCKh@0.75               PCKh@1.00
+            n = len(keypointnames)
+            PCKh = np.zeros([8, n + 1])
+            thre = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.75, 1.00]
+            batches_done = 0
+
+            for batch_i, (targets, signal, GT) in enumerate(validloader):
+                batches_done = batch_i + 1
+
+                signal = Variable(signal.to(device), requires_grad=False)
+                targets = Variable(targets.to(device), requires_grad=False)
+
+                outputs = model(signal)
+                pred = pose_decode(outputs)
+
+                for i in range(8):
+                    PCKh[i, 0:-1] = PCKh[i, 0:-1] + eval_pckh(pred, GT, n, thre[i])
+
+            PCKh[:] = PCKh[:]/batches_done
+            for i in range(8):
+                PCKh[i, -1] = np.sum(PCKh[i, 0:-1])/n
+                logger_val.append(list(PCKh[i, :]))
+
+                log_str = "PCKh@%f" % thre[i]
+                for keypoint_i, name in enumerate(keypointnames):
+                    log_str += '[%s, %f]' % (name, PCKh[i, keypoint_i])
+
+                log_str += '[average, %f]' % PCKh[i, -1]
+                print(log_str)
 
         if epoch % opt.checkpoint_interval == 0:
             torch.save(model.state_dict(), f"checkpoints/deseqnettest_%d.pth" % epoch)
 
-    logger.close()
+    logger_train.close()
+    logger_val.close()
