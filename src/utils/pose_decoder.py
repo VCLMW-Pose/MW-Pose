@@ -72,7 +72,7 @@ def plot_skeleton(img, output, thick=2):
 
 
 
-def decoder(output, threshold=0.4):
+def decoder(output, threshold=0.2):
     """
     Arg:
         output:     (18x64x64 ndarray) heatmap
@@ -82,17 +82,19 @@ def decoder(output, threshold=0.4):
     """
     op_np = np.zeros((len(parts), 2), dtype=int)
     for part in range(len(parts)):
-        part_output = output[part, :, :]
+        part_output = output[:, part, :, :]
         if part_output.max() >= threshold:
-            op_np[part][0] = np.where(part_output == part_output.max())[1][0]
-            op_np[part][1] = np.where(part_output == part_output.max())[0][0]
+            op_np[part][0] = np.where(part_output == part_output.max())[1]
+            op_np[part][1] = np.where(part_output == part_output.max())[2]
         else:
             op_np[part][0] = -1
             op_np[part][1] = -1
     op_list = [[0, 0]] * len(parts)  #For drawing
     for part in range(len(parts)):
-        if op_np[part][0] == -1 or op_np[part][1] == -1:
-            op_list[part] = [op_np[part][0] * 10, op_np[part][1] * 10 - 180]
+        if op_np[part][0] != -1 and op_np[part][1] != -1:
+            op_list[part] = [op_np[part][1] * 10, op_np[part][0] * 10 - 70]
+        else:
+            op_list[part] = [-1, -1]
         # *640/64 scaling to the image size; -180 no padding
     return op_np, op_list
 

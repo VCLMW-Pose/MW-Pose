@@ -47,11 +47,11 @@ from src.utils import logger, imwrite
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
-    parser.add_argument("--batch_size", type=int, default=1, help="size of each image batch")
+    parser.add_argument("--epochs", type=int, default=500, help="number of epochs")
+    parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
     parser.add_argument('--data_path', type=str, default="F:/captest", help="directory of dataset")
     parser.add_argument("--gradient_accumulations", type=int, default=2, help="number of gradient accums before step")
-    parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest.pth", help="if specified starts from checkpoint model")
+    parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest_90.pth", help="if specified starts from checkpoint model")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--checkpoint_interval", type=int, default=10, help="interval between saving model weights")
     parser.add_argument("--evaluation_interval", type=int, default=1, help="interval evaluations on validation set")

@@ -33,6 +33,7 @@
 import os
 import cv2
 import numpy as np
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -678,7 +679,7 @@ class UpBlock(nn.Module):
 
 if __name__ == "__main__":
     model = DeSeqNetTest().to("cuda")
-    model.load_state_dict(torch.load("E:/MW-Pose/train/checkpoints/deseqnettest_90.pth"))
+    model.load_state_dict(torch.load("E:/MW-Pose/train/checkpoints/deseqnettest_490.pth"))
     model.eval()
     # Get dataloader
     dataset = deSeqNetLoader("F:/captest")
@@ -694,11 +695,14 @@ if __name__ == "__main__":
         signal = Variable(signal.to("cuda"))
         targets = Variable(targets.to("cuda"), requires_grad=False)
 
+        start_time = time.time()
         outputs = model(signal)
+        end_time = time.time()
         outputs = outputs.cpu().detach().numpy()
         print(np.where(outputs[0, 4, :, :] == outputs[0, 4, :, :].max()))
         output_np, output_list = decoder(outputs)
         black = np.zeros((360, 640, 3))
+        black = black.astype(np.uint8)
         cv2.namedWindow('Black')
         plot_skeleton(black, output_list, thick=2)
         cv2.imshow('Black', black)
