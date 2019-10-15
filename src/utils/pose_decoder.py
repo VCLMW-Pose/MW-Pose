@@ -57,14 +57,14 @@ def plot_skeleton(img, output, thick=2):
         img = cv2.line(img, jointscoor['lHip'], jointscoor['lKnee'], (75, 58, 217), thickness=thick)
     if jointscoor['lKnee'][0] != -1 and jointscoor['lAnkle'][0] != -1:
         img = cv2.line(img, jointscoor['lKnee'], jointscoor['lAnkle'], (244, 59, 166), thickness=thick)
-    if jointscoor['nose'][0] != -1 and jointscoor['rEye'][0] != -1:
-        img = cv2.line(img, jointscoor['nose'], jointscoor['rEye'], (49, 56, 218), thickness=thick)
-    if jointscoor['rEye'][0] != -1 and jointscoor['rEar'][0] != -1:
-        img = cv2.line(img, jointscoor['rEye'], jointscoor['rEar'], (23, 25, 118), thickness=thick)
-    if jointscoor['nose'][0] != -1 and jointscoor['lEye'][0] != -1:
-        img = cv2.line(img, jointscoor['nose'], jointscoor['lEye'], (130, 35, 158), thickness=thick)
-    if jointscoor['lEye'][0] != -1 and jointscoor['lEar'][0] != -1:
-        img = cv2.line(img, jointscoor['lEye'], jointscoor['lEar'], (53, 200, 18), thickness=thick)
+    #if jointscoor['nose'][0] != -1 and jointscoor['rEye'][0] != -1:
+    #    img = cv2.line(img, jointscoor['nose'], jointscoor['rEye'], (49, 56, 218), thickness=thick)
+    #if jointscoor['rEye'][0] != -1 and jointscoor['rEar'][0] != -1:
+    #    img = cv2.line(img, jointscoor['rEye'], jointscoor['rEar'], (23, 25, 118), thickness=thick)
+    # if jointscoor['nose'][0] != -1 and jointscoor['lEye'][0] != -1:
+    #    img = cv2.line(img, jointscoor['nose'], jointscoor['lEye'], (130, 35, 158), thickness=thick)
+    # if jointscoor['lEye'][0] != -1 and jointscoor['lEar'][0] != -1:
+    #    img = cv2.line(img, jointscoor['lEye'], jointscoor['lEar'], (53, 200, 18), thickness=thick)
     for joint in parts:
         if jointscoor[joint] != (-1, -1):
             img = cv2.circle(img, jointscoor[joint], 3, (68, 147, 200), -1)
