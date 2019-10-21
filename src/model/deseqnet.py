@@ -31,7 +31,9 @@
 ##################################################################################
 
 import os
+import cv2
 import numpy as np
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -39,6 +41,9 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 from src.model.resnet34 import ResNet34
+from src.dataset import deSeqNetLoader
+from src.utils.pose_decoder import *
+from src.utils.evaluation import *
 
 __all__ = ['DeSeqNetProj', 'saveWeight', 'loadWeight']
 
@@ -631,7 +636,7 @@ class DeSeqNetTest(nn.Module):
             UpBlock(64, 32, upsample=True),
             UpBlock(32, 18, upsample=False),
             nn.Conv2d(18, 18, 1, 1),
-            # nn.LeakyReLU()d
+            nn.LeakyReLU()
         )
 
     def forward(self, x):
@@ -672,3 +677,38 @@ class UpBlock(nn.Module):
         x = self.relu(x)
 
         return x
+
+if __name__ == "__main__":
+    model = DeSeqNetTest().to("cuda")
+    model.load_state_dict(torch.load("../../train/checkpoints/deseqnettest_170.pth"))
+    model.eval()
+    # Get dataloader
+    dataset = deSeqNetLoader("../../data/captest")
+    dataloader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=6,
+        pin_memory=True,
+    )
+
+    for batch_i, (targets, signal, GT) in enumerate(dataloader):
+        signal = Variable(signal.to("cuda"))
+        targets = Variable(targets.to("cuda"), requires_grad=False)
+
+        start_time = time.time()
+        outputs = model(signal)
+        end_time = time.time()
+        outputs = outputs.cpu().detach().numpy()
+        print(np.where(outputs[0, 4, :, :] == outputs[0, 4, :, :].max()))
+        output_np, output_list = decoder(outputs)
+        # output_np = pose_decode(outputs)
+        # eval_pckh(output_np, GT, 18, 1)
+        black = np.zeros((360, 640, 3))
+        black = black.astype(np.uint8)
+        cv2.namedWindow('Black')
+        plot_skeleton(black, output_list, thick=2)
+        cv2.imshow('Black', black)
+        while True:
+            if cv2.waitKey(10) & 0xFF == ord('\r'):
+               break

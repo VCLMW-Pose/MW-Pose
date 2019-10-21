@@ -12,7 +12,8 @@ Vision Cognition Laboratory, 211189 Nanjing China
 
 __all__ = ['logger']
 
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
 import numpy as np
 import sys
 import os
@@ -43,7 +44,7 @@ class logger():
                     self.data[self.tags[i]].append(data[i])
             self.file.close()
 
-            self.file = open(os.path.join('../' + file_path, title + '.txt'), 'a')
+            self.file = open(os.path.join('../' + file_path), 'a')
 
     def set_tags(self, tags):
         if self.resume:
@@ -75,10 +76,11 @@ class logger():
         tags = tags if tags is not None else self.tags
         for _, tag in enumerate(tags):
             x = np.arange(len(self.data[tag]))
-            plt.plot(x, np.asarray(self.data[tag]))
+            matplotlib.pyplot.plot(x, np.asarray(self.data[tag]))
 
-        plt.legend([self.title + '(' + tag + ')' for tag in tags])
-        plt.grid(True)
+        matplotlib.pyplot.legend([self.title + '(' + tag + ')' for tag in tags])
+        matplotlib.pyplot.grid(True)
+        matplotlib.pyplot.show()
 
     def close(self):
         if self.file is not None:
