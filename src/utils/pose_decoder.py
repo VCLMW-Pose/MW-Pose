@@ -102,6 +102,7 @@ if __name__ == "__main__":
     output = np.random.random((18, 64, 64))
     black = np.zeros((360, 640, 3))
     black = black.astype(np.uint8)
+    black += 128
     cv2.namedWindow('Black')
     output_np, output_list = decoder(output, threshold=0.4)
     plot_skeleton(black, output_list, thick=2)
@@ -110,3 +111,4 @@ if __name__ == "__main__":
         if cv2.waitKey(10) & 0xFF == ord('\r'):
             break
     exit()
+

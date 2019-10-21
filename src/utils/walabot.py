@@ -205,7 +205,7 @@ def read_signal(save_dir):
     _horizontal = sumup_perpendicular(np.copy(raw_img))
     heatmap = plt.pcolormesh(_horizontal, cmap='jet')
     plt.show()
-    plt.savefig(save_dir + ".jpg")
+    # plt.savefig(save_dir + "horizontal.jpg")
 
 
 if __name__ == '__main__':
