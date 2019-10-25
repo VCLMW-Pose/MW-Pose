@@ -192,7 +192,7 @@ def move_img(dir_orig, dir_dest):
     for root, _, files in os.walk(dir_orig):
         for file in files:
             # Do not search jpg ,txt and hidden files
-            if file[-1] == 'g':
+            if file[-4:] == '.jpg':
                 jpgs.append(file)
                 fulljpgs.append(os.path.join(root, file))
                 tt_jpg_num += 1
@@ -211,5 +211,8 @@ if __name__ == "__main__":
     # analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
     # frame_analysis("/Users/midora/Desktop/MW-Pose/datacontainer")
     # frame_analysis_anno('/Users/midora/Desktop/MW-Pose/section_del')
-    move_img()
+    dir_orig = 'D:\\Documents\\Source\\MW-Pose-dataset'
+    dir_dest = 'D:\\Documents\\Source\\MW-Pose\\data\\captest'
+    move_img(dir_orig, dir_dest)
     print("Completed!")
+    exit()
