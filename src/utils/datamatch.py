@@ -179,10 +179,23 @@ def frame_analysis_anno(data_dir):
             plt.show()
         break  # Only traverse top directory
 
+def lood_img(dir_orig, dir_dest):
+    """
+    Description: To move image to dataset package
+    :param dir_orig:
+    :param dir_dest:
+    :return: 
+    """
+    jpg = self.data_files[idx]
+    if os.path.exists(os.path.join(self.dir, jpg[:-4])):
+        for root, _, files in os.walk(os.path.join(self.dir, jpg[:-4])):
+            for file in files:
+                if file[-4:] == '.jpg':
+                    return cv2.imread(os.path.join(root, file))
 
 if __name__ == "__main__":
     # matching("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01, False)
-    analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
+    # analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
     # frame_analysis("/Users/midora/Desktop/MW-Pose/datacontainer")
     # frame_analysis_anno('/Users/midora/Desktop/MW-Pose/section_del')
     print("Completed!")
