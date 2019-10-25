@@ -50,17 +50,14 @@ from src.utils import logger, imwrite
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=500, help="number of epochs")
-    parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
+    parser.add_argument("--batch_size", type=int, default=128, help="size of each image batch")
     parser.add_argument('--data_path', type=str, default="../data/capref2", help="directory of dataset")
-    parser.add_argument("--gradient_accumulations", type=int, default=2, help="number of gradient accums before step")
     #parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest_490.pth",
     # help="if specified starts from checkpoint model")
     parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--checkpoint_interval", type=int, default=10, help="interval between saving model weights")
     parser.add_argument("--evaluation_interval", type=int, default=10, help="interval evaluations on validation set")
-    parser.add_argument("--compute_map", default=False, help="if True computes mAP every tenth batch")
-    parser.add_argument("--multiscale_training", default=True, help="allow for multi-scale training")
     opt = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -119,7 +116,7 @@ if __name__ == "__main__":
 
             signal = Variable(signal.to(device))
             targets = Variable(targets.to(device), requires_grad=False)
-
+            targets = torch.cat((targets, targets), 1)
             outputs = model(signal)
             losses = []
             accum_loss = 0
@@ -161,7 +158,7 @@ if __name__ == "__main__":
             for batch_i, (_, val_signal, GT) in enumerate(validloader):
 
                 val_signal = Variable(val_signal.to(device), requires_grad=False)
-
+                GT = torch.cat((GT, GT), 0)
                 val_outputs = model(val_signal)
                 val_outputs = val_outputs.cpu()
                 pred = pose_decode(val_outputs)

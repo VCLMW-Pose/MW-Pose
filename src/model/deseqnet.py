@@ -630,12 +630,14 @@ class DeSeqNetTest(nn.Module):
         # self.decoder = self.buildDecoder()
 
         self.decoder = nn.Sequential(
+
+            UpBlock(1024, 512, upsample=True),
             UpBlock(512, 256, upsample=True),
             UpBlock(256, 128, upsample=True),
             UpBlock(128, 64, upsample=True),
-            UpBlock(64, 32, upsample=True),
-            UpBlock(32, 18, upsample=False),
-            nn.Conv2d(18, 18, 1, 1),
+            UpBlock(64, 36, upsample=False),
+           # UpBlock(32, 18, upsample=False),
+            nn.Conv2d(36, 36, 1, 1),
             nn.LeakyReLU()
         )
 
@@ -654,7 +656,7 @@ class DeSeqNetTest(nn.Module):
         # Forward propagation of encoderY
         outy = self.encoderY(perpProj)
 
-        out = outx + outy
+        out = torch.cat((outx, outy), 1)
         out = self.decoder(out)
 
         return out
