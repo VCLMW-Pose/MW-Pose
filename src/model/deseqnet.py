@@ -190,7 +190,6 @@ class downSample2d(nn.Module):
         self.dropout = dropout
         self.stride = stride
     
-    def forward(self, x):
         out = self.conv(x)
         out = self.drop(out)
         out = self.bn(out)
@@ -685,7 +684,7 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load("../../train/checkpoints/deseqnettest_170.pth"))
     model.eval()
     # Get dataloader
-    dataset = deSeqNetLoader("../../data/captest")
+    dataset = deSeqNetLoader("../../data/captest", test=True)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=1,
@@ -694,9 +693,8 @@ if __name__ == "__main__":
         pin_memory=True,
     )
 
-    for batch_i, (targets, signal, GT) in enumerate(dataloader):
+    for batch_i, (image, signal, GT) in enumerate(dataloader):
         signal = Variable(signal.to("cuda"))
-        targets = Variable(targets.to("cuda"), requires_grad=False)
 
         start_time = time.time()
         outputs = model(signal)
@@ -710,7 +708,9 @@ if __name__ == "__main__":
         black = black.astype(np.uint8)
         cv2.namedWindow('Black')
         plot_skeleton(black, output_list, thick=2)
-        cv2.imshow('Black', black)
+        plot_skeleton(image, GT, thick=2)
+        final = np.concatenate((black, image), axis=0)
+        cv2.imshow('Test', final)
         while True:
             if cv2.waitKey(10) & 0xFF == ord('\r'):
                break
