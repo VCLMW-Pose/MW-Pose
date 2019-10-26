@@ -681,10 +681,10 @@ class UpBlock(nn.Module):
 
 if __name__ == "__main__":
     model = DeSeqNetTest().to("cuda")
-    model.load_state_dict(torch.load("../../train/checkpoints/deseqnettest_170.pth"))
+    model.load_state_dict(torch.load("../../train/checkpoints/deseqnettest_490.pth"))
     model.eval()
     # Get dataloader
-    dataset = deSeqNetLoader("../../data/captest", test=True)
+    dataset = deSeqNetLoader("../../data/captest", test=True, valid=True)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=1,
@@ -695,7 +695,7 @@ if __name__ == "__main__":
 
     for batch_i, (image, signal, GT) in enumerate(dataloader):
         signal = Variable(signal.to("cuda"))
-
+        image = image.squeeze(0).numpy()
         start_time = time.time()
         outputs = model(signal)
         end_time = time.time()
@@ -706,10 +706,10 @@ if __name__ == "__main__":
         # eval_pckh(output_np, GT, 18, 1)
         black = np.zeros((360, 640, 3))
         black = black.astype(np.uint8)
-        cv2.namedWindow('Black')
         plot_skeleton(black, output_list, thick=2)
         plot_skeleton(image, GT, thick=2)
         final = np.concatenate((black, image), axis=0)
+        cv2.namedWindow('Test')
         cv2.imshow('Test', final)
         while True:
             if cv2.waitKey(10) & 0xFF == ord('\r'):

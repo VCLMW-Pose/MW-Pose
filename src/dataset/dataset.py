@@ -148,11 +148,10 @@ class deSeqNetLoader(Dataset):
             return conf_maps, signal, GT
         else:
             file_name = self.names[idx]
-
             # Get confidence map ground truth and signal
             _, GT = self.getGroundTruth(idx)
+            img_path = os.path.join('../../data/captest/images', file_name.split('/')[-1] + '.jpg')
             signal = self.readSignal(file_name)
-            img_path = os.path.join('../data/captest2/images', file_name.split('/')[-1] + '.jpg')
             image = cv2.imread(img_path)
 
 

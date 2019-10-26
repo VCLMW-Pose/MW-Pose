@@ -12,6 +12,7 @@ Vision Cognition Laboratory, 211189 Nanjing China
 import numpy as np
 import os
 import cv2
+import torch
 from src.utils.heatmap import *
 
 parts = ['nose', 'neck', 'rShoulder',
@@ -29,8 +30,17 @@ def plot_skeleton(img, output, thick=2):
             thick:          (int) thick of the line
     '''
     jointscoor = {}
-    for i in range(len(parts)):
-        jointscoor[parts[i]] = (output[i][0], output[i][1])
+    if isinstance(output, list) or isinstance(output, tuple):
+        for i in range(len(parts)):
+            jointscoor[parts[i]] = (output[i][0], output[i][1])
+    elif isinstance(output, np.ndarray) or isinstance(output, torch.Tensor):
+        while len(output.shape) > 2:
+            output = output.squeeze(0)
+        for i in range(len(parts)):
+            jointscoor[parts[i]] = (int(output[i][0]), int(output[i][1]))
+    else:
+        print("Please check argument type!")
+        return
     if jointscoor['nose'][0] != -1 and jointscoor['neck'][0] != -1:
         img = cv2.line(img, jointscoor['nose'], jointscoor['neck'], (181, 102, 60), thickness=thick)
     if jointscoor['neck'][0] != -1 and jointscoor['rShoulder'][0] != -1:
