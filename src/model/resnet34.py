@@ -27,7 +27,7 @@ class ResidualBlock(nn.Module):
         '''
         super(ResidualBlock, self).__init__()
         self.left = nn.Sequential(
-            nn.Conv2d(chan_in ,chan_out, 3, stride, 1, bias=False),
+            nn.Conv2d(chan_in, chan_out, 3, stride, 1, bias=False),
             nn.BatchNorm2d(chan_out),
             nn.ReLU(inplace=True),
             nn.Conv2d(chan_out, chan_out, 3, 1, 1, bias=False),
@@ -81,7 +81,7 @@ class ResNet34(nn.Module):
             nn.BatchNorm2d(chan_out)
         )
 
-        layers =[]
+        layers = []
         layers.append(ResidualBlock(chan_in, chan_out, stride, shortcut))
 
         for i in range(block_num):

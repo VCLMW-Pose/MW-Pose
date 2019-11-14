@@ -12,6 +12,7 @@ Vision Cognition Laboratory, 211189 Nanjing China
 import numpy as np
 import os
 import cv2
+import torch
 from src.utils.heatmap import *
 
 parts = ['nose', 'neck', 'rShoulder',
@@ -29,8 +30,17 @@ def plot_skeleton(img, output, thick=2):
             thick:          (int) thick of the line
     '''
     jointscoor = {}
-    for i in range(len(parts)):
-        jointscoor[parts[i]] = (output[i][0], output[i][1])
+    if isinstance(output, list) or isinstance(output, tuple):
+        for i in range(len(parts)):
+            jointscoor[parts[i]] = (output[i][0], output[i][1])
+    elif isinstance(output, np.ndarray) or isinstance(output, torch.Tensor):
+        while len(output.shape) > 2:
+            output = output.squeeze(0)
+        for i in range(len(parts)):
+            jointscoor[parts[i]] = (int(output[i][0]), int(output[i][1]))
+    else:
+        print("Please check argument type!")
+        return
     if jointscoor['nose'][0] != -1 and jointscoor['neck'][0] != -1:
         img = cv2.line(img, jointscoor['nose'], jointscoor['neck'], (181, 102, 60), thickness=thick)
     if jointscoor['neck'][0] != -1 and jointscoor['rShoulder'][0] != -1:
@@ -57,14 +67,14 @@ def plot_skeleton(img, output, thick=2):
         img = cv2.line(img, jointscoor['lHip'], jointscoor['lKnee'], (75, 58, 217), thickness=thick)
     if jointscoor['lKnee'][0] != -1 and jointscoor['lAnkle'][0] != -1:
         img = cv2.line(img, jointscoor['lKnee'], jointscoor['lAnkle'], (244, 59, 166), thickness=thick)
-    if jointscoor['nose'][0] != -1 and jointscoor['rEye'][0] != -1:
-        img = cv2.line(img, jointscoor['nose'], jointscoor['rEye'], (49, 56, 218), thickness=thick)
-    if jointscoor['rEye'][0] != -1 and jointscoor['rEar'][0] != -1:
-        img = cv2.line(img, jointscoor['rEye'], jointscoor['rEar'], (23, 25, 118), thickness=thick)
-    if jointscoor['nose'][0] != -1 and jointscoor['lEye'][0] != -1:
-        img = cv2.line(img, jointscoor['nose'], jointscoor['lEye'], (130, 35, 158), thickness=thick)
-    if jointscoor['lEye'][0] != -1 and jointscoor['lEar'][0] != -1:
-        img = cv2.line(img, jointscoor['lEye'], jointscoor['lEar'], (53, 200, 18), thickness=thick)
+    #if jointscoor['nose'][0] != -1 and jointscoor['rEye'][0] != -1:
+    #    img = cv2.line(img, jointscoor['nose'], jointscoor['rEye'], (49, 56, 218), thickness=thick)
+    #if jointscoor['rEye'][0] != -1 and jointscoor['rEar'][0] != -1:
+    #    img = cv2.line(img, jointscoor['rEye'], jointscoor['rEar'], (23, 25, 118), thickness=thick)
+    # if jointscoor['nose'][0] != -1 and jointscoor['lEye'][0] != -1:
+    #    img = cv2.line(img, jointscoor['nose'], jointscoor['lEye'], (130, 35, 158), thickness=thick)
+    # if jointscoor['lEye'][0] != -1 and jointscoor['lEar'][0] != -1:
+    #    img = cv2.line(img, jointscoor['lEye'], jointscoor['lEar'], (53, 200, 18), thickness=thick)
     for joint in parts:
         if jointscoor[joint] != (-1, -1):
             img = cv2.circle(img, jointscoor[joint], 3, (68, 147, 200), -1)
@@ -144,6 +154,7 @@ if __name__ == "__main__":
     output = np.random.random((18, 64, 64))
     black = np.zeros((360, 640, 3))
     black = black.astype(np.uint8)
+    black += 128
     cv2.namedWindow('Black')
     output_np, output_list = decoder(output, threshold=0.4)
     plot_skeleton(black, output_list, thick=2)
@@ -152,3 +163,4 @@ if __name__ == "__main__":
         if cv2.waitKey(10) & 0xFF == ord('\r'):
             break
     exit()
+

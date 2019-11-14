@@ -190,7 +190,6 @@ class downSample2d(nn.Module):
         self.dropout = dropout
         self.stride = stride
     
-    def forward(self, x):
         out = self.conv(x)
         out = self.drop(out)
         out = self.bn(out)
@@ -630,12 +629,14 @@ class DeSeqNetTest(nn.Module):
         # self.decoder = self.buildDecoder()
 
         self.decoder = nn.Sequential(
+
+            UpBlock(1024, 512, upsample=True),
             UpBlock(512, 256, upsample=True),
             UpBlock(256, 128, upsample=True),
             UpBlock(128, 64, upsample=True),
-            UpBlock(64, 32, upsample=True),
-            UpBlock(32, 18, upsample=False),
-            nn.Conv2d(18, 18, 1, 1),
+            UpBlock(64, 36, upsample=False),
+           # UpBlock(32, 18, upsample=False),
+            nn.Conv2d(36, 36, 1, 1),
             nn.LeakyReLU()
         )
 
@@ -654,7 +655,7 @@ class DeSeqNetTest(nn.Module):
         # Forward propagation of encoderY
         outy = self.encoderY(perpProj)
 
-        out = outx + outy
+        out = torch.cat((outx, outy), 1)
         out = self.decoder(out)
 
         return out
@@ -680,10 +681,10 @@ class UpBlock(nn.Module):
 
 if __name__ == "__main__":
     model = DeSeqNetTest().to("cuda")
-    model.load_state_dict(torch.load("E:/MW-Pose/train/checkpoints/deseqnettest_490.pth"))
+    model.load_state_dict(torch.load("../../train/checkpoints/deseqnettest_490.pth"))
     model.eval()
     # Get dataloader
-    dataset = deSeqNetLoader("F:/captest")
+    dataset = deSeqNetLoader("../../data/captest", test=True, valid=True)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=1,
@@ -692,23 +693,24 @@ if __name__ == "__main__":
         pin_memory=True,
     )
 
-    for batch_i, (targets, signal, GT) in enumerate(dataloader):
+    for batch_i, (image, signal, GT) in enumerate(dataloader):
         signal = Variable(signal.to("cuda"))
-        targets = Variable(targets.to("cuda"), requires_grad=False)
-
+        image = image.squeeze(0).numpy()
         start_time = time.time()
         outputs = model(signal)
         end_time = time.time()
         outputs = outputs.cpu().detach().numpy()
         print(np.where(outputs[0, 4, :, :] == outputs[0, 4, :, :].max()))
-        # output_np, output_list = decoder(outputs)
-        output_np = pose_decode(outputs)
-        eval_pckh(output_np, GT, 18, 1)
-        # black = np.zeros((360, 640, 3))
-        # black = black.astype(np.uint8)
-        # cv2.namedWindow('Black')
-        # plot_skeleton(black, output_list, thick=2)
-        # cv2.imshow('Black', black)
-        # while True:
-        #     if cv2.waitKey(10) & 0xFF == ord('\r'):
-        #        break
+        output_np, output_list = decoder(outputs)
+        # output_np = pose_decode(outputs)
+        # eval_pckh(output_np, GT, 18, 1)
+        black = np.zeros((360, 640, 3))
+        black = black.astype(np.uint8)
+        plot_skeleton(black, output_list, thick=2)
+        plot_skeleton(image, GT, thick=2)
+        final = np.concatenate((black, image), axis=0)
+        cv2.namedWindow('Test')
+        cv2.imshow('Test', final)
+        while True:
+            if cv2.waitKey(10) & 0xFF == ord('\r'):
+               break

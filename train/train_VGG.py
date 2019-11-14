@@ -1,4 +1,4 @@
-#-*- coding = utf-8 -*-
+# -*- coding = utf-8 -*-
 """
 # Copyright (c) 2018-2019, Shrowshoo-Young All Right Reserved.
 #
@@ -43,8 +43,8 @@ from torch.autograd import Variable
 from torch.autograd import grad
 from src.utils.pose_decoder import *
 from src.utils.evaluation import *
-from src.model.deseqnet import DeSeqNetProj, DeSeqNetTest
-from src.dataset import deSeqNetLoader
+from src.model.VGGNet import VGGNet
+from src.dataset import VGGNetLoader
 from src.utils import logger, imwrite
 
 if __name__ == "__main__":
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=500, help="number of epochs")
     parser.add_argument("--batch_size", type=int, default=128, help="size of each image batch")
     parser.add_argument('--data_path', type=str, default="../data/capref2", help="directory of dataset")
-    #parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest_490.pth",
+    # parser.add_argument("--pretrained_weights", type=str, default="checkpoints/deseqnettest_490.pth",
     # help="if specified starts from checkpoint model")
     parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
@@ -78,7 +78,10 @@ if __name__ == "__main__":
     logger_val.set_tags(logger_valtag)
 
     # Initiate model
-    model = DeSeqNetTest().to(device)
+    model = VGGNet()
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model, device_ids=[0, 1, 2])
+    model.to(device)
     lossfunc = nn.MSELoss()
     if torch.cuda.is_available():
         lossfunc = lossfunc.cuda()
@@ -88,7 +91,7 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(opt.pretrained_weights))
 
     # Get dataloader
-    dataset = deSeqNetLoader(opt.data_path)
+    dataset = VGGNetLoader(opt.data_path)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
@@ -97,7 +100,7 @@ if __name__ == "__main__":
         pin_memory=True,
     )
 
-    validset = deSeqNetLoader(opt.data_path, valid=True)
+    validset = VGGNetLoader(opt.data_path, valid=True)
     validloader = torch.utils.data.DataLoader(
         validset,
         batch_size=opt.batch_size,
@@ -166,9 +169,9 @@ if __name__ == "__main__":
                 for i in range(8):
                     PCKh[i, 0:-1] = PCKh[i, 0:-1] + eval_pckh(pred, GT, n, thre[i])
 
-            PCKh[:] = PCKh[:]/len(validloader)
+            PCKh[:] = PCKh[:] / len(validloader)
             for i in range(8):
-                PCKh[i, -1] = np.sum(PCKh[i, 0:-1])/n
+                PCKh[i, -1] = np.sum(PCKh[i, 0:-1]) / n
                 logger_val.append(list(PCKh[i, :]))
 
                 log_str = "PCKh@%f" % thre[i]

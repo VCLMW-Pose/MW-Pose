@@ -42,53 +42,24 @@ import torch
 import cv2
 import os
 
-__all__ = ['deSeqNetLoader']
+__all__ = ['VGGNetLoader']
 
 
-class deSeqNetLoader(Dataset):
-    '''
-    The data loader of DeSeqNet. The annotations are kept in a txt file and
-    each row stands for a person. deSeqNetLoader reads the annotation.
-    When extracting data from deSeqNetloader, it generates confidence maps
-    of key points as Ground Truth of deSeqNetLoader output.
-    ***The batch size denotes the frame number of a video clip, ensure
-    the batch size selected will not includes data from different video clip
-    which may trigger non convergence of RNN layers!***
-    ***Do not set shuffle of base class to True! RNN layers need an intact
-    and continuous video clip to converge. If shuffle is needed, please set
-    the input parameter shuffle of deSeqNetLoader to True.***
+class VGGNetLoader(Dataset):
     '''
 
-    def __init__(self, dataDirectory, signal_size=60, GTSize=64, imgw=640, imgh=360, valid=False, test=False):
+    '''
+
+    def __init__(self, dataDirectory, signal_size=60, GTSize=64, imgw=640, imgh=360, valid=0):
         '''
-        :param dataDirectory: directory of saving dataset, the annotation
-        txt is named as joint_point.txt.
-        :param inputSize, inputDepth: dimensions of input RF signal heat maps.
-        :param GTSize: dimensions of output confidence heat map of key points.
-        :param imgw, imgh: dimensions of raw optical images, that is the
-        reference dimension of key point annotation coordinates.
-        :param clipFrame: clipFrame defines how many frames are included in
-        each video clip. This does not mean deSeqNetLoader provides grouped
-        data, but only single frames that is not concerned with clipFrame.
-        This parameters instruct the reorder process, which ensures the images
-        from the same video clip are grouped while reordering.
-        :param selectPoint: this is a list defining what kinds of key points
-        are wished to be predicted by DeSeqNet. Unselected key points will be
-        absent in the ground truth confidence maps.
-        :param paraparse: argparse class that keeps the following coefficients:
-        sigma of 2d gaussian confidence map, expectation and sigma of rotation.
-        :param rotate: defines whether to augment data through rotation.
-        :param shuffle: defines whether reorder the sequence of data in each
-        epoch.
+
         '''
         # Max number of key points
         self.MAX_POINTNUM = 18
 
         self.dataDirectory = dataDirectory
-        # self.inputSize = inputSize
-        # self.inputDepth = inputDepth
+
         self.GTSize = GTSize
-        self.signal_size = signal_size
 
         # Read keypoint names
         with open(os.path.join(dataDirectory, 'keypoint.names'), 'r') as namefile:
@@ -101,7 +72,9 @@ class deSeqNetLoader(Dataset):
         # self.frames = clipFrame
         self.imgw = imgw
         self.imgh = imgh
-        # self.paraparse = paraparse
+        self.signals = []
+        self.GTs = []
+        self.conf_maps = []
 
         # Read annotation
         # self.anno = self.readAnnotation(dataDirectory)
@@ -111,18 +84,22 @@ class deSeqNetLoader(Dataset):
             names = 'train.txt'
         else:
             names = 'valid.txt'
-        self.test = test
+
         with open(os.path.join(dataDirectory, names)) as namefile:
             self.names = namefile.readlines()
             self.names = [line.rstrip() for line in self.names]
-            # self.names = self.names[0:8]
+        for i, name in enumerate(self.names):
 
-        # remainder = length%self.frames
-        # self.anno = self.anno[:length - remainder - 1]
+            # Get confidence map ground truth and signal
+            conf_map, GT = self.getGroundTruth(i)
+            signal = self.readSignal(name)
 
-        # reorder the groups randomly
-        # if shuffle:
-        #    self.reorder()
+            self.conf_maps.append(torch.from_numpy(conf_map.astype(np.float32)))
+            self.signals.append(torch.from_numpy(signal.astype(np.float32)).div(signal.max()))
+            self.GTs.append(GT)
+
+
+
 
     def __getitem__(self, idx):
         '''
@@ -130,34 +107,7 @@ class deSeqNetLoader(Dataset):
         and read raw RF signal matrix. If rotation operation is required, it
         performs rotation. The returns are confidence map and signal.
         '''
-        # Get file name and eliminate its postfix '.jpg'
-        if not self.test:
-            file_name = self.names[idx]
-
-            # Get confidence map ground truth and signal
-            conf_maps, GT = self.getGroundTruth(idx)
-            signal = self.readSignal(file_name)
-
-            # Data augmentation by rotating both signal and confidence map
-            # if self.rotate:
-            #    conf_maps, signal = self.rotation(conf_maps, signal)
-
-            conf_maps = torch.from_numpy(conf_maps.astype(np.float32))
-            signal = torch.from_numpy(signal.astype(np.float32)).div(signal.max())
-
-            return conf_maps, signal, GT
-        else:
-            file_name = self.names[idx]
-            # Get confidence map ground truth and signal
-            _, GT = self.getGroundTruth(idx)
-            img_path = os.path.join('../../data/captest/images', file_name.split('/')[-1] + '.jpg')
-            signal = self.readSignal(file_name)
-            image = cv2.imread(img_path)
-
-
-            signal = torch.from_numpy(signal.astype(np.float32)).div(signal.max())
-
-            return image, signal, GT
+        return self.conf_maps[idx], self.signals[idx], self.GTs[idx].copy()
 
     def __len__(self):
         return len(self.names)
@@ -257,17 +207,7 @@ class deSeqNetLoader(Dataset):
         # Resize the signal as size_z x size_x x size_y
         raw_img = np.array(data[3:]).reshape(size_z, size_x, size_y)
 
-        horizontal = np.zeros([60, 60])
-        vertical = np.zeros([60, 60])
-        horizontal[:, 23:36] = sumup_horizontal(raw_img)
-        vertical[:, 23:36] = sumup_perpendicular(raw_img)
-
-        # Expand dimension
-        horizontal = np.expand_dims(horizontal, 0)
-        horizontal = np.expand_dims(horizontal, 0)
-        vertical = np.expand_dims(vertical, 0)
-        vertical = np.expand_dims(vertical, 0)
-        signal = np.concatenate((horizontal, vertical), 1)
+        signal = cv2.resize(raw_img, (60, 64, 64))
         return signal
 
     def readAnnotation(self, dataDirectory):
