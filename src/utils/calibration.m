@@ -20,13 +20,18 @@
 % processing pipeline. No further technical support is guaranteed.
 
 %% Solve Least Square Esitimation of Calibration
-solve_calib = 1;
+solve_calib = 0;
 
 if solve_calib
     
     % Solve LSE calibration
-    P = fsolve(@calib_func, [0, 0, 0, 0, 0, 0]);
+    options = optimoptions('fsolve','StepTolerance', 1e-9, 'MaxIterations', 1e5, 'MaxFunctionEvaluations', ...
+            1e5,'Display', ...
+            'iter','PlotFcn',@optimplotfval);
+    
+    P = fsolve(@calib_func, [0, 0, 0, 0, 0, 0], options);
 end
+
 
 %% Calibration Pick Walabot Sensor Point Script
 pick_point_sensor = 0;
@@ -103,16 +108,16 @@ pick_point = 0;
 if pick_point
     
     % Load camera parameters
-    cameraPrams = load('cameraparameter.mat');
+    % cameraPrams = load('cameraparameter.mat');
 
     % Read image
-    img_path = 'F:/captureNov15/2/0207.jpg';
+    img_path = 'F:/captureNov15/1/0013.jpg';
     img = imread(img_path);
 
     % Rotate image and eradicate distortion
-    % [img, new] = undistortImage(img, cameraParams);
     img = permute(img, [2, 1, 3]);
     img = fliplr(img);
+    [img, new] = undistortImage(img, cameraParams);
 
     % Display image
     imshow(img);

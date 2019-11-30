@@ -71,11 +71,11 @@ WALABOT_RES_R = 5
 
 WALABOT_MIN_THETA = -45
 WALABOT_MAX_THETA = 45
-WALABOT_RES_THETA = 3
+WALABOT_RES_THETA = 2
 
-WALABOT_MIN_PHI = -45
-WALABOT_MAX_PHI = 45
-WALABOT_RES_PHI = 3
+WALABOT_MIN_PHI = -44
+WALABOT_MAX_PHI = 44
+WALABOT_RES_PHI = 2
 
 WALABOT_THRESHOLD = 15
 WALABOT_EN_MTI = False
@@ -160,7 +160,7 @@ def continuous_capture(capture_frames, current_id):
         # Measure delay
         tdiff += camera_time - sensor_time
 
-        raw_image = np.array(walabot_raw_image)
+        raw_image = np.array(raw_image)
         raw_images.append(raw_image)
         opt_images.append(img)
         bar.update(i)
@@ -169,18 +169,19 @@ def continuous_capture(capture_frames, current_id):
 
     # Average delay
     tdiff /= capture_frames
-    print("[capture info] Capture completed, average delay: %f\n", tdiff)
+    print("[capture info] Capture completed, average delay: %f\n" % tdiff)
 
     # Save images
     for i, (sensor, image) in enumerate(zip(raw_images, opt_images)):
         # Write images captured by web camera
-        image_path = os.path.join(capture_savedir, '%04d.jpg' % i)
+        image_path = os.path.join(capture_savedir, '%04d.jpg' % (capture_id + i))
         cv2.imwrite(image_path, image)
 
         # Write raw sensor image in binary form
-        with open(os.path.join(capture_savedir, '%04d' % i), 'w') as file:
+        with open(os.path.join(capture_savedir, '%04d' % (capture_id + i)), 'w') as file:
             sensor_size.astype(np.int32).tofile(file)
             sensor.astype(np.int32).tofile(file)
+
             file.close()
 
 
@@ -207,6 +208,7 @@ def animation_update(image):
         # Provides bidimensional (2-D) image data (3D image is projected to 2D plane) of
         # the slice where the strongest signal is produced.
         walabot_image_slice = walabot_get_slice(walabot_raw_image)
+        # print(walabot_image_slice.shape)
         walabot_image_slice = walabot_image_slice.transpose([1, 0])
         walabot_heatmap = capture_axis.pcolormesh(walabot_image_slice, cmap='jet')
 
@@ -359,9 +361,9 @@ def run_capture_test():
 
 if __name__ == "__main__":
     # Star listen keyboard interruptions
-    # keyboard_thread = threading.Thread(target=start_listenting)
-    # keyboard_thread.start()
-    # run_capture()
+    keyboard_thread = threading.Thread(target=start_listenting)
+    keyboard_thread.start()
+    run_capture()
 
     # For debugging purpose
-    run_capture_test()
+    # run_capture_test()

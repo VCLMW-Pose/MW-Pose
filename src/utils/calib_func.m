@@ -33,33 +33,25 @@ theta_z = x(3);     delta_z = x(6);
 %     -C_y    & C_y S_x               & C_x C_y               & \delta_z \\
 %     0       & 0                     & 0                     & 1
 %                             \end{matrix}\right]$$
-T = [cos(theta_y)*cos(theta_z)  ...
+R = [cos(theta_y)*cos(theta_z)  ...
     cos(theta_z)*sin(theta_x)*sin(theta_y) - cos(theta_x)*sin(theta_z) ...
-    sin(theta_x)*sin(theta_z) + cos(theta_x)*cos(theta_z)*sin(theta_y) ...
-    delta_x;
+    sin(theta_x)*sin(theta_z) + cos(theta_x)*cos(theta_z)*sin(theta_y);
     cos(theta_y)*sin(theta_z) ...
     cos(theta_x)*cos(theta_z) + sin(theta_x)*sin(theta_y)*sin(theta_z) ...
-    cos(theta_x)*sin(theta_y)*sin(theta_z) - cos(theta_z)*sin(theta_z) ...
-    delta_y;
-    -cos(theta_y)   cos(theta_y)*sin(theta_x)   cos(theta_x)*cos(theta_y)   delta_z;
-    0               0                           0                           1];
+    cos(theta_x)*sin(theta_y)*sin(theta_z) - cos(theta_z)*sin(theta_z);
+    -sin(theta_y)   cos(theta_y)*sin(theta_x)   cos(theta_x)*cos(theta_y)];
+T = [delta_x, delta_y, delta_z]';
+
+% Read calibration points from file
+calibPoint = load("calibPoint.mat");
+calibPoint = calibPoint.calibPoint;
+y = zeros(calibPoint.num*3, 1);
+
+for i = 1:calibPoint.num
     
-% For every calibration point $P_{si}, P_{ci}$, the mapping is designated 
-% as: $$P_{si}=T_{c}^{s}P_{ci}$$
-    
-    % Set value of beta and theta
-    beta = x(1);
-    theta = x(2);
-    
-    %                0.7071S(beta)S(theta) - 0.5C(beta) + 0.5C(beta)C(theta)
-    % tan(gamma) =  -------------------------------------------------------
-    %                                  0.5C(theta) + 0.5
-    y(1) = 1.414*sin(beta)*sin(theta) - cos(beta) + cos(beta)*cos(theta) - ...
-        tan(gamma)*(cos(theta) + 1);
-    
-    %                0.5S(beta)C(theta) - 0.7071C(beta)S(theta) - 0.5S(beta)
-    % tan(delta) -  -------------------------------------------------------
-    %                                  0.5C(theta) + 0.5                  
-    y(2) = sin(beta)*cos(theta) - 1.414*cos(beta)*sin(theta) - sin(beta) - ...
-        tan(delta)*(cos(theta) + 1);
+    % For every calibration point $P_{si}, P_{ci}$, the mapping is designated 
+    % as: $$P_{si}=T_{c}^{s}P_{ci}$$
+    y(3*(i - 1) + 1:3*i) = R*calibPoint.CameraCoordinates(i, :)' + T - ...
+                                calibPoint.WalabotCoordinates(i, :)';
+end
 end
