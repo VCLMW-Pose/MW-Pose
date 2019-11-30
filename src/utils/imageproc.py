@@ -96,4 +96,3 @@ def sumup_horizontal(img):
 
     return sumimg
 
-
