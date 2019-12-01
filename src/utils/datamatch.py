@@ -74,10 +74,12 @@ def matching(data_dir, max_err, rm_ori_file=False):
                             if rm_ori_file:
                                 shutil.move(root + '/' + walabot, dst)
                                 shutil.move(root + '/' + matched, dst)
+                                os.rename(os.path.join(dst, matched), os.path.join(dst, walabot + '.jpg'))
                             else:
                                 shutil.copy(root + '/' + walabot, dst)
                                 shutil.copy(root + '/' + matched, dst)
-                            f.writelines([walabot, '\t', matched[:-4], '\t', str(cur_err)[:7], '\n'])
+                                os.rename(os.path.join(dst, matched), os.path.join(dst, walabot + '.jpg'))
+                            f.writelines([walabot, '\t', matched[:-4], '\t', str(cur_err), '\n'])
                             matched_num += 1
                             tt_matched_num += 1
                 print("%d data has been matched in %s." % (matched_num, dir))
@@ -211,8 +213,10 @@ if __name__ == "__main__":
     # analysis("/Users/midora/Desktop/MW-Pose/datacontainer", 0.01)
     # frame_analysis("/Users/midora/Desktop/MW-Pose/datacontainer")
     # frame_analysis_anno('/Users/midora/Desktop/MW-Pose/section_del')
-    dir_orig = 'D:\\Documents\\Source\\MW-Pose-dataset'
-    dir_dest = 'D:\\Documents\\Source\\MW-Pose\\data\\captest'
-    move_img(dir_orig, dir_dest)
+    dir_orig = 'D:\\Documents\\Source\\MW-Pose-dataset-old\\dataset-new'
+    dir_dest = 'D:\\Documents\\Source\\MW-Pose\\data\\matched-new'
+    # move_img(dir_orig, dir_dest)
+    matching(dir_orig, 0.01, False)
+
     print("Completed!")
     exit()
