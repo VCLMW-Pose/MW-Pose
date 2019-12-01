@@ -88,13 +88,15 @@ class walabot():
 
         if mode == "horizontal":
             M, _, _, _, _ = self.walabot.GetRawImageSlice()
+            M = np.array(M)
+            self.heatmap = self.ax.pcolormesh(M, cmap='jet')
         elif mode == "perpendicular":
             M, _, _, _, _ = self.walabot.GetRawImage()
             M = np.array(M)
             perpenducular = sumup_perpendicular(np.array(M))
             perpenducular.transpose(1, 0)
+            self.heatmap = self.ax.pcolormesh(perpenducular, cmap='jet')
 
-        self.heatmap = self.ax.pcolormesh(perpenducular, cmap='jet')
         self.fig.colorbar(self.heatmap)
 
         if mode == "horizontal":
@@ -214,7 +216,7 @@ def read_signal(save_dir):
     raw_img = np.array(data[3:]).reshape(size_x, size_y, size_z)
     # print(raw_img.shape)
     for i in range(size_z):
-        np.savetxt("E:\capture\dets%d.txt" %i, raw_img[i, :, :], fmt='%d', delimiter='    ')
+        np.savetxt("E:\capture\dets%d.txt" %i, raw_img[:, :, i], fmt='%d', delimiter='    ')
 
     # print(raw_img)
     # _horizontal = sumup_perpendicular(np.copy(raw_img))
@@ -227,8 +229,8 @@ if __name__ == '__main__':
     # read_signal("F:/capref2/signals/1551601908119")
     # read_signal("E:/MW-Pose/res/1551761233560")
     # Walabot = walabot()
-   # Walabot.scan_test(10, 300, 5, -45, 45, 3, -45, 45, 3, 15, 'perpendicular', False)
+    # Walabot.scan_test(10, 300, 5, -45, 45, 3, -45, 45, 3, 15, 'horizontal', False)
     # Walabot.initialize(10, 300, 5, -45, 45, 3, -45, 45, 3, 15, False)
     # Walabot.scan()
-    read_signal('F:/captureNov15/0000')
+    read_signal('F:/captureNov15/2/0207')
 

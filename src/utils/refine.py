@@ -54,6 +54,10 @@ class AnnotationLoader:
                 dir: (string) Directory of folder for pre-annotated data
                         e.g. '/Users/midora/Desktop/MW-Pose/section_del/_1.0'
         """
+        if not os.path.exists('../../data'):
+            os.mkdir('../../data')
+        if not os.path.exists('../../data/original'):
+            os.mkdir('../../data/original')
         self.mode = mode
         self.dir = dir
         self.threshold = threshold
@@ -163,6 +167,9 @@ class AnnotationLoader:
         if self.mode == 'json':
             with open(os.path.join(self.outputpath, filename.split('.')[0] + '.json'), 'w') as json_file:
                 json_file.write(json.dumps(self.annotation[filename]))
+                shutil.move(os.path.join('../../data/annoataions', filename.split('.')[0] + '.json'),
+                            '../../data/original')
+
         else:
             of = os.path.join(dir, 'refined.txt')
             with open(of, 'w') as f:
