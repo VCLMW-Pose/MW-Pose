@@ -56,8 +56,8 @@ class AnnotationLoader:
         """
         if not os.path.exists('../../data'):
             os.mkdir('../../data')
-        if not os.path.exists('../../data/original'):
-            os.mkdir('../../data/original')
+        # if not os.path.exists('../../data/original'):
+        #     os.mkdir('../../data/original')
         self.mode = mode
         self.dir = dir
         self.threshold = threshold
@@ -167,9 +167,9 @@ class AnnotationLoader:
         if self.mode == 'json':
             with open(os.path.join(self.outputpath, filename.split('.')[0] + '.json'), 'w') as json_file:
                 json_file.write(json.dumps(self.annotation[filename]))
-                shutil.move(os.path.join('../../data/annoataions', filename.split('.')[0] + '.json'),
-                            '../../data/original')
-
+                # original = os.path.join('../../data/annotations', filename.split('.')[0] + '.json')
+                # if os.path.exists(original):
+                #     shutil.move(original, '../../data/original')
         else:
             of = os.path.join(dir, 'refined.txt')
             with open(of, 'w') as f:
