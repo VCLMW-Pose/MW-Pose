@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 import shutil
 import json
-from src.utils.json_tools import load_json_anno
+from src.utils.json_tools import *
 
 
 
@@ -56,8 +56,8 @@ class AnnotationLoader:
         """
         if not os.path.exists('../../data'):
             os.mkdir('../../data')
-        if not os.path.exists('../../data/original'):
-            os.mkdir('../../data/original')
+        # if not os.path.exists('../../data/original'):
+        #     os.mkdir('../../data/original')
         if not os.path.exists('../../data/refined'):
             os.mkdir('../../data/refined')
         self.mode = mode
@@ -168,9 +168,9 @@ class AnnotationLoader:
     def revise(self, filename):
         if self.mode == 'json':
             with open(os.path.join(self.outputpath, filename.split('.')[0] + '.json'), 'w') as json_file:
-                json_file.write(json.dumps(self.annotation[filename]))
-                shutil.move(os.path.join('../../data/annoataions', filename.split('.')[0] + '.json'),
-                            '../../data/original')
+                json_file.write(json.dumps(self.annotation[filename], indent=4))
+                # shutil.move(os.path.join('../../data/annoataions', filename.split('.')[0] + '.json'),
+                #             '../../data/original')
 
         else:
             of = os.path.join(dir, 'refined.txt')
@@ -407,7 +407,7 @@ def refine(mode='drag', thread=0, os=mac):
                     cv2.imshow(anno.window_name, img)
             else:
                 key = cv2.waitKey(10)
-                if key == 13 or key == 3 or key == 100:  # Enter
+                if key == 13 or key == 3 or key == 100:  # Enter or D button
                     anno.joint_selected = False
                     anno.revise(anno.cur_file)
                     idx += 1
