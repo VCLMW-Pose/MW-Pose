@@ -27,15 +27,15 @@ hold on;
 plot(C{7},'Color',[0.58 0.09 0.32]);
 hold on;
 plot(C{8},'Color',[0.48 0.51 1]);
+grid on;
 hold off;
-xlabel('Epoch');
+xlabel('Batch');
 ylabel('Loss');
-ylim([0 0.005]);
+% ylim([0 0.005]);
 legend('nose', 'neck', 'rshoulder','relbow','rwrist','lshould',...
     'lelbow','lwrist','Location', 'northeastoutside')
 savefig('curve-I');
 
-grid;
 plot(C{9},'r');
 hold on;
 plot(C{10},'g');
@@ -51,27 +51,30 @@ hold on;
 plot(C{15},'Color',[0.58 0.09 0.32]);
 hold on;
 plot(C{16},'Color',[0.48 0.51 1]);
+grid on;
 hold off;
-xlabel('Epoch');
+xlabel('Batch');
 ylabel('Loss');
 legend('rhip','rknee','rankle','lhip','lknee',...
     'lankle','reye','leye','Location', 'northeastoutside')
 savefig('curve-II');
 
-grid;
+
 plot(C{17},'r');
 hold on;
 plot(C{18},'g');
+grid on;
 hold off;
-xlabel('Epoch');
+xlabel('Batch');
 ylabel('Loss');
 legend('rear','lear','Location', 'northeastoutside')
 savefig('curve-III');
 
-grid;
 plot(C{19},'m');
+grid on;
 hold off;
-xlabel('Epoch');
+% xlim([100 14000])
+xlabel('Batch');
 ylabel('Loss');
 legend('total','Location', 'northeastoutside')
 savefig('curve-total');
