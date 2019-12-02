@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Mon Sep 23 00:13 2019
+    Last edit date   : Sun Dec 1 14:43 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -58,6 +58,8 @@ class AnnotationLoader:
             os.mkdir('../../data')
         if not os.path.exists('../../data/original'):
             os.mkdir('../../data/original')
+        if not os.path.exists('../../data/refined'):
+            os.mkdir('../../data/refined')
         self.mode = mode
         self.dir = dir
         self.threshold = threshold
@@ -500,12 +502,12 @@ def assemble(datadir):
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
     # dir = 'F:/capref/'
-    dir = 'D:/Documents/Source/MW-Pose-dataset/dataset/_pack1'
+    # dir = 'D:/Documents/Source/MW-Pose-dataset/dataset/_pack1'
     # dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
     # pop_box()0
     # radar_out(dir)
-    refine(mode='drag', thread=0, os=win)
+    refine(mode='drag', thread=0, os=mac)
     # distribute(dir)
     # assemble(dir)
     print('Completed!')
