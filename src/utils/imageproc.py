@@ -12,7 +12,6 @@ Vision Cognition Laboratory, 211189 Nanjing China
 
 __all__ = ['scaling', 'imwrite', 'sumup', 'sumup_perpendicular', 'sumup_horizontal']
 
-import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 

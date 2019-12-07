@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
             signal = Variable(signal.to(device))
             targets = Variable(targets.to(device), requires_grad=False)
-            targets = torch.cat((targets, targets), 1)
+            # targets = torch.cat((targets, targets), 1)
             outputs = model(signal)
             losses = []
             accum_loss = 0
@@ -178,8 +178,8 @@ if __name__ == "__main__":
                 log_str += '[average, %f]\n' % PCKh[i, -1]
                 print(log_str)
 
-        if epoch % opt.checkpoint_interval == 0:
-            torch.save(model.state_dict(), f"checkpoints/deseqnettest_%d.pth" % epoch)
+        if epoch % opt.checkpoint_interval == 9:
+            torch.save(model.state_dict(), f"checkpoints/deseqnettest_%d.pth" % (epoch+1))
 
     logger_train.close()
     logger_val.close()

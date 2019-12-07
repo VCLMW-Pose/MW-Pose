@@ -3,7 +3,7 @@
 
     Author           : Yu Du
     Email            : yuduseu@gmail.com
-    Last edit date   : Mon Sep 23 00:13 2019
+    Last edit date   : Sun Dec 1 14:43 2019
 
 South East University Automation College
 Vision Cognition Laboratory, 211189 Nanjing China
@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 import shutil
 import json
-from src.utils.json_tools import load_json_anno
+from src.utils.json_tools import *
 
 
 
@@ -54,6 +54,12 @@ class AnnotationLoader:
                 dir: (string) Directory of folder for pre-annotated data
                         e.g. '/Users/midora/Desktop/MW-Pose/section_del/_1.0'
         """
+        if not os.path.exists('../../data'):
+            os.mkdir('../../data')
+        # if not os.path.exists('../../data/original'):
+        #     os.mkdir('../../data/original')
+        if not os.path.exists('../../data/refined'):
+            os.mkdir('../../data/refined')
         self.mode = mode
         self.dir = dir
         self.threshold = threshold
@@ -162,7 +168,10 @@ class AnnotationLoader:
     def revise(self, filename):
         if self.mode == 'json':
             with open(os.path.join(self.outputpath, filename.split('.')[0] + '.json'), 'w') as json_file:
-                json_file.write(json.dumps(self.annotation[filename]))
+                json_file.write(json.dumps(self.annotation[filename], indent=4))
+                # shutil.move(os.path.join('../../data/annoataions', filename.split('.')[0] + '.json'),
+                #             '../../data/original')
+
         else:
             of = os.path.join(dir, 'refined.txt')
             with open(of, 'w') as f:
@@ -398,7 +407,7 @@ def refine(mode='drag', thread=0, os=mac):
                     cv2.imshow(anno.window_name, img)
             else:
                 key = cv2.waitKey(10)
-                if key == 13 or key == 3 or key == 100:  # Enter
+                if key == 13 or key == 3 or key == 100:  # Enter or D button
                     anno.joint_selected = False
                     anno.revise(anno.cur_file)
                     idx += 1
@@ -493,12 +502,12 @@ def assemble(datadir):
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
     # dir = 'F:/capref/'
-    dir = 'D:/Documents/Source/MW-Pose-dataset/dataset/_pack1'
+    # dir = 'D:/Documents/Source/MW-Pose-dataset/dataset/_pack1'
     # dir = 'D:\\Documents\\Source\\MW-Pose-dataset\\dataset\\_12.0'
     # move_anno(anno_dir, dir)
     # pop_box()0
     # radar_out(dir)
-    refine(mode='drag', thread=0, os=win)
+    refine(mode='drag', thread=0, os=mac)
     # distribute(dir)
     # assemble(dir)
     print('Completed!')

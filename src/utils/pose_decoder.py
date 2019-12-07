@@ -150,7 +150,7 @@ def pose_decode(heatmap, threshold = 0.2):
             # *640/64 scaling to the image size; -140 no padding
     return op_np
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     output = np.random.random((18, 64, 64))
     black = np.zeros((360, 640, 3))
     black = black.astype(np.uint8)

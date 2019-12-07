@@ -486,7 +486,7 @@ class DeSeqNetFull(nn.Module):
         if self.leaky:
             layer.append(nn.LeakyReLU(inplace=True))
         else:
-            layer.append(nn.ReLU(inplace=True))
+            layer.append(nn.ReLU(inplace=True)) 
 
         # first two bottleneck blocks
         layer.append(bottleNeck(60, 60, 1, self.leaky, self.dropout))
@@ -635,8 +635,9 @@ class DeSeqNetTest(nn.Module):
             UpBlock(256, 128, upsample=True),
             UpBlock(128, 64, upsample=True),
             UpBlock(64, 36, upsample=False),
+            UpBlock(36, 18, upsample=False),
            # UpBlock(32, 18, upsample=False),
-            nn.Conv2d(36, 36, 1, 1),
+            nn.Conv2d(18, 18, 1, 1),
             nn.LeakyReLU()
         )
 
@@ -684,7 +685,7 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load("../../train/checkpoints/deseqnettest_490.pth"))
     model.eval()
     # Get dataloader
-    dataset = deSeqNetLoader("../../data/captest", test=True, valid=True)
+    dataset = deSeqNetLoader("../../data/captest", test=True, valid=False)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=1,
