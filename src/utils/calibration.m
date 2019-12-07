@@ -107,7 +107,7 @@ browse_signal = 1;
 if browse_signal
     
     % Directory to RF signals, must be absolute directory
-    fileFolder = fullfile("F:/captureNov15/2/signals");
+    fileFolder = fullfile("F:/captureNov15/3/signals");
     
     % Read all file names within the directory
     dirOutput = dir(fullfile(fileFolder,'0*'));
@@ -144,6 +144,7 @@ if browse_signal
         % Draw sphere to visualize voxels with considerable reflection.
         [x, y, z] = sphere();
         len = size(x, 1);
+        a = figure('Visible', 'off');
         for i = 1:2:w
             for j = 1:2:h
                 for k = 1:d
@@ -169,14 +170,30 @@ if browse_signal
         
         % Disable shading of the plot, and set its boundaries.
         shading interp 
+        title(fileName);
+        view(0, -90)
         axis([1, w, 1, h, 1, d]);
+        print(a, '-dbmp', sprintf('image/%d', n))
         
         % Wait for keyboard press
-        while waitforbuttonpress ~= 1
-        end
+%         while waitforbuttonpress ~= 1
+%         end
         clf;
         
     end
+    
+%     save_dir = "result.gif";
+%     for j = 1:n
+%         A = imread(sprintf('image/%d.bmp', j));
+%         [I, map] = rgb2ind(A,256);
+% 
+%         if(j == 1)
+%             imwrite(I, map, save_dir, 'DelayTime', 0.05, 'LoopCount', Inf)
+%         else
+%             imwrite(I, map, save_dir, 'WriteMode', 'append', 'DelayTime', 0.05)    
+%         end
+%     end
+
 end
 
 %% Calibration Point Picking Script
