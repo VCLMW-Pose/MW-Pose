@@ -48,7 +48,7 @@ class AnnotationLoader:
             }
     """
 
-    def __init__(self, threshold=0, mode='json', outputpath='../../data/refined', dir='../../data/images'):
+    def __init__(self, facial_feature, threshold=0, mode='json', outputpath='../../data/refined', dir='../../data/images'):
         """
             Args:
                 dir: (string) Directory of folder for pre-annotated data
@@ -61,6 +61,7 @@ class AnnotationLoader:
         if not os.path.exists('../../data/refined'):
             os.mkdir('../../data/refined')
         self.mode = mode
+        self.facial_feature = facial_feature
         self.dir = dir
         self.threshold = threshold
         self.anno_file = ''
@@ -167,6 +168,8 @@ class AnnotationLoader:
 
     def revise(self, filename):
         if self.mode == 'json':
+            if len(self.annotation[filename]) == 0:
+                return
             with open(os.path.join(self.outputpath, filename.split('.')[0] + '.json'), 'w') as json_file:
                 json_file.write(json.dumps(self.annotation[filename], indent=4))
                 # shutil.move(os.path.join('../../data/annoataions', filename.split('.')[0] + '.json'),
@@ -230,17 +233,21 @@ class AnnotationLoader:
                 img = cv2.line(img, jointscoor['lHip'], jointscoor['lKnee'], (75, 58, 217), thickness=thick)
             if jointscoor['lKnee'][0] != -1 and jointscoor['lAnkle'][0] != -1:
                 img = cv2.line(img, jointscoor['lKnee'], jointscoor['lAnkle'], (244, 59, 166), thickness=thick)
-            if jointscoor['nose'][0] != -1 and jointscoor['rEye'][0] != -1:
-                img = cv2.line(img, jointscoor['nose'], jointscoor['rEye'], (49, 56, 218), thickness=thick)
-            if jointscoor['rEye'][0] != -1 and jointscoor['rEar'][0] != -1:
-                img = cv2.line(img, jointscoor['rEye'], jointscoor['rEar'], (23, 25, 118), thickness=thick)
-            if jointscoor['nose'][0] != -1 and jointscoor['lEye'][0] != -1:
-                img = cv2.line(img, jointscoor['nose'], jointscoor['lEye'], (130, 35, 158), thickness=thick)
-            if jointscoor['lEye'][0] != -1 and jointscoor['lEar'][0] != -1:
-                img = cv2.line(img, jointscoor['lEye'], jointscoor['lEar'], (53, 200, 18), thickness=thick)
+            if self.facial_feature:
+                if jointscoor['nose'][0] != -1 and jointscoor['rEye'][0] != -1:
+                    img = cv2.line(img, jointscoor['nose'], jointscoor['rEye'], (49, 56, 218), thickness=thick)
+                if jointscoor['rEye'][0] != -1 and jointscoor['rEar'][0] != -1:
+                    img = cv2.line(img, jointscoor['rEye'], jointscoor['rEar'], (23, 25, 118), thickness=thick)
+                if jointscoor['nose'][0] != -1 and jointscoor['lEye'][0] != -1:
+                    img = cv2.line(img, jointscoor['nose'], jointscoor['lEye'], (130, 35, 158), thickness=thick)
+                if jointscoor['lEye'][0] != -1 and jointscoor['lEar'][0] != -1:
+                    img = cv2.line(img, jointscoor['lEye'], jointscoor['lEar'], (53, 200, 18), thickness=thick)
             for joint in self.parts:
                 if joint == 'None':
                     continue
+                if not self.facial_feature:
+                    if joint in ['rEye', 'lEye', 'rEar', 'lEar']:
+                        continue
                 if self.deleting and people == self.person_selected:
                     img = cv2.circle(img, jointscoor[joint], 5, (0, 0, 255), -1)
                 elif joint == self.joint_selected and people == self.person_selected:
@@ -365,13 +372,14 @@ class AnnotationLoader:
 
 
 
-def refine(mode='drag', thread=0, os=mac):
+def refine(facial_feature, thresh=0, os=mac):
     """
     Args:
         dir:    (string) directory of one group of data
         mode:   (string) decide whether to move or click to change the joint point
     """
-    anno = AnnotationLoader(thread)
+    mode = 'drag'
+    anno = AnnotationLoader(facial_feature, threshold=thresh)
     # app = MyCollectApp()
     anno.window_name = 'refining'
     cv2.namedWindow(anno.window_name)
@@ -507,7 +515,7 @@ if __name__ == "__main__":
     # move_anno(anno_dir, dir)
     # pop_box()0
     # radar_out(dir)
-    refine(mode='drag', thread=0, os=mac)
+    refine(facial_feature=False, thresh=0, os=mac)
     # distribute(dir)
     # assemble(dir)
     print('Completed!')

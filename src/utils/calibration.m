@@ -107,7 +107,7 @@ browse_signal = 1;
 if browse_signal
     
     % Directory to RF signals, must be absolute directory
-    fileFolder = fullfile("F:/captureNov15/3/signals");
+    fileFolder = fullfile("/Users/midora/Documents/MW-Pose/data/signals");
     
     % Read all file names within the directory
     dirOutput = dir(fullfile(fileFolder,'0*'));
@@ -171,7 +171,7 @@ if browse_signal
         % Disable shading of the plot, and set its boundaries.
         shading interp 
         title(fileName);
-        view(0, -90)
+        view(-45, -45)
         axis([1, w, 1, h, 1, d]);
         print(a, '-dbmp', sprintf('image/%d', n))
         
@@ -205,7 +205,7 @@ if pick_point
     % cameraPrams = load('cameraparameter.mat');
 
     % Read image
-    img_path = 'F:/captureNov15/1/0013.jpg';
+    img_path = '/Users/midora/Documents/MW-Pose/data/images/0013.jpg';
     img = imread(img_path);
 
     % Rotate image and eradicate distortion

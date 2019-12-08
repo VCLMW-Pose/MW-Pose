@@ -1,34 +1,5 @@
 # -*- coding = utf-8 -*-
-"""
-# Copyright (c) 2018-2019, Shrowshoo-Young All Right Reserved.
-#
-# This programme is developed as free software for the investigation of human
-# pose estimation using RF signals. Redistribution or modification of it is
-# allowed under the terms of the GNU General Public Licence published by the
-# Free Software Foundation, either version 3 or later version.
-#
-# Redistribution and use in source or executable programme, with or without
-# modification is permitted provided that the following conditions are met:
-#
-# 1. Redistribution in the form of source code with the copyright notice
-#    above, the conditions and following disclaimer retained.
-#
-# 2. Redistribution in the form of executable programme must reproduce the
-#    copyright notice, conditions and following disclaimer in the
-#    documentation and\or other literal materials provided in the distribution.
-#
-# This is an unoptimized software designed to meet the requirements of the
-# processing pipeline. No further technical support is guaranteed.
-"""
 
-##################################################################################
-#                                   dataset.py
-#
-#   Dataloader implementation of all networks.
-#
-#   Shrowshoo-Young 2019-10, shaoshuyangseu@gmail.com
-#   South East University, Vision and Cognition Laboratory, 211189 Nanjing, China
-##################################################################################
 
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
@@ -239,3 +210,66 @@ class VGGNetLoader(Dataset):
             anno.append(person)
 
         return anno
+
+class VGGLoader(Dataset):
+    def __init__(self, dataDirectory, signal_size=60, GTSize=64, imgw=640, imgh=360, valid=0):
+        '''
+
+        '''
+        # Max number of key points
+        self.MAX_POINTNUM = 18
+
+        self.dataDirectory = dataDirectory
+
+        self.GTSize = GTSize
+
+        # Read keypoint names
+        with open(os.path.join(dataDirectory, 'keypoint.names'), 'r') as namefile:
+            self.keyPointName = namefile.readlines()
+            self.keyPointName = [line.rstrip() for line in self.keyPointName]
+
+        # self.selectPoint = selectPoint
+        # self.rotate = rotate
+        # self.shuffle = shuffle
+        # self.frames = clipFrame
+        self.imgw = imgw
+        self.imgh = imgh
+        self.signals = []
+        self.GTs = []
+        self.conf_maps = []
+
+        # Read annotation
+        # self.anno = self.readAnnotation(dataDirectory)
+
+        # Discard the redundant annotation that cannot make up a group
+        if valid == 0:
+            names = 'train.txt'
+        else:
+            names = 'valid.txt'
+
+        with open(os.path.join(dataDirectory, names)) as namefile:
+            self.names = namefile.readlines()
+            self.names = [line.rstrip() for line in self.names]
+        for i, name in enumerate(self.names):
+
+            # Get confidence map ground truth and signal
+            conf_map, GT = self.getGroundTruth(i)
+            signal = self.readSignal(name)
+
+            self.conf_maps.append(torch.from_numpy(conf_map.astype(np.float32)))
+            self.signals.append(torch.from_numpy(signal.astype(np.float32)).div(signal.max()))
+            self.GTs.append(GT)
+
+
+
+
+    def __getitem__(self, idx):
+        '''
+        Overide of __getitem__(). It acquire confidence map as ground truth
+        and read raw RF signal matrix. If rotation operation is required, it
+        performs rotation. The returns are confidence map and signal.
+        '''
+        return self.conf_maps[idx], self.signals[idx], self.GTs[idx].copy()
+
+    def __len__(self):
+        return len(self.names)
