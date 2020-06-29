@@ -107,7 +107,7 @@ browse_signal = 1;
 if browse_signal
     
     % Directory to RF signals, must be absolute directory
-    fileFolder = fullfile("/Users/midora/Documents/MW-Pose/data/signals");
+    fileFolder = fullfile("F:/datasets/origin/signals");
     
     % Read all file names within the directory
     dirOutput = dir(fullfile(fileFolder,'0*'));

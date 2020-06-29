@@ -51,7 +51,7 @@ walabot_heatmap = 0
 
 # Walabot instance
 walabot = WalabotAPI
-camera = cv2.VideoCapture(1)
+camera = cv2.VideoCapture(0)
 
 # Shutter for capture, 0 if shutter not pressed. 1 shutter pressed and now capturing.
 capture_shutter = False
@@ -59,7 +59,7 @@ capture_end = False
 capture_figure = 0
 capture_axis = 0
 capture_animation = 0
-capture_id = 0
+capture_id = 2830
 
 # Captured image saving directory
 capture_savedir = 'F:/captureNov15'
@@ -174,11 +174,11 @@ def continuous_capture(capture_frames, current_id):
     # Save images
     for i, (sensor, image) in enumerate(zip(raw_images, opt_images)):
         # Write images captured by web camera
-        image_path = os.path.join(capture_savedir, '%04d.jpg' % (capture_id + i))
+        image_path = os.path.join(capture_savedir, '%05d.jpg' % (capture_id + i))
         cv2.imwrite(image_path, image)
 
         # Write raw sensor image in binary form
-        with open(os.path.join(capture_savedir, '%04d' % (capture_id + i)), 'w') as file:
+        with open(os.path.join(capture_savedir, '%05d' % (capture_id + i)), 'w') as file:
             sensor_size.astype(np.int32).tofile(file)
             sensor.astype(np.int32).tofile(file)
 
@@ -212,8 +212,8 @@ def animation_update(image):
         walabot_image_slice = walabot_image_slice.transpose([1, 0])
         walabot_heatmap = capture_axis.pcolormesh(walabot_image_slice, cmap='jet')
 
-
     return walabot_heatmap,
+
 
 def run_capture():
     global walabot

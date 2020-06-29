@@ -489,6 +489,7 @@ def distribute(datadir):
                 subf.write(jpg + ' : ' + point)
     print('Distribution completed!')
 
+
 def assemble(datadir):
     if os.path.exists(os.path.join(datadir, 'refined_all.txt')):
         os.remove(os.path.join(datadir, 'refined_all.txt'))
@@ -507,6 +508,7 @@ def assemble(datadir):
                                 fw.write(folder + ' : ' + point)
     print('Assembling completed!')
 
+
 if __name__ == "__main__":
     # anno_dir = '/Users/midora/Desktop/MW-Pose-old/section_del'
     # dir = 'F:/capref/'
@@ -515,7 +517,7 @@ if __name__ == "__main__":
     # move_anno(anno_dir, dir)
     # pop_box()0
     # radar_out(dir)
-    refine(facial_feature=False, thresh=0, os=mac)
+    refine(facial_feature=False, thresh=0, os=win)
     # distribute(dir)
     # assemble(dir)
     print('Completed!')

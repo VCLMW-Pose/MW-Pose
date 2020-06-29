@@ -49,6 +49,7 @@ def imwrite(img, save_dir):
     img = np.array(img, dtype=int).transpose((1, 2, 0))[:, :, ::-1]
     cv2.imwrite(save_dir, img)
 
+
 def sumup(img):
     '''
     Args:

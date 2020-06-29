@@ -16,7 +16,7 @@ int main()
     fwrite(signal, sizeof(char), 1, inter);
     fclose(inter);*/
 
-    walabot test(10, 600, 10, -60, 60, 10, -60, 60, 10, true, 15);
+    walabot test(10, 300, 5, -45, 45, 3, -45, 45, 3, false, 15);
     test.start();
     test.union_scan("F:\\capture\\", 100);
 }

@@ -15,11 +15,17 @@ import cv2
 import torch
 from src.utils.heatmap import *
 
+# parts = ['nose', 'neck', 'rShoulder',
+#          'rElbow', 'rWrist', 'lShoulder',
+#          'lElbow', 'lWrist', 'rHip', 'rKnee',
+#          'rAnkle', 'lHip', 'lKnee', 'lAnkle',
+#          'rEye', 'lEye', 'rEar', 'lEar']
+
 parts = ['nose', 'neck', 'rShoulder',
          'rElbow', 'rWrist', 'lShoulder',
          'lElbow', 'lWrist', 'rHip', 'rKnee',
-         'rAnkle', 'lHip', 'lKnee', 'lAnkle',
-         'rEye', 'lEye', 'rEar', 'lEar']
+         'rAnkle', 'lHip', 'lKnee', 'lAnkle'
+         ]
 
 
 def plot_skeleton(img, output, thick=2):
@@ -81,7 +87,6 @@ def plot_skeleton(img, output, thick=2):
     return img
 
 
-
 def decoder(output, threshold=0.2):
     """
     Arg:
@@ -118,14 +123,15 @@ def decoder(output, threshold=0.2):
         # *640/64 scaling to the image size; -180 no padding
     return op_np, op_list
 
-def pose_decode(heatmap, threshold = 0.2):
+
+def pose_decode(heatmap, threshold=0.2):
     """
         Arg:
             output:     (nx18x64x64 ndarray) heatmap
         Return:
             op_np:      (nx18x2 ndarray) joints coordinate in heatmap
             op_list:    (nx18x2 list) joints coordinate in image
-        """
+    """
     n = heatmap.shape[0]
     op_np = np.zeros((n, len(parts), 2), dtype=int)
 
@@ -149,6 +155,7 @@ def pose_decode(heatmap, threshold = 0.2):
 
             # *640/64 scaling to the image size; -140 no padding
     return op_np
+
 
 if __name__ == '__main__':
     output = np.random.random((18, 64, 64))

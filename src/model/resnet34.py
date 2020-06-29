@@ -16,6 +16,7 @@ import torch.nn as nn
 
 __all__ = ['ResNet34']
 
+
 class ResidualBlock(nn.Module):
     def __init__(self, chan_in, chan_out, stride=1, shortcut=None):
         '''

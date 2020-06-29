@@ -1,6 +1,4 @@
 # -*- coding = utf-8 -*-
-
-
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
 # from src.utils import scaling
@@ -10,6 +8,7 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 import torch
+import json
 import cv2
 import os
 
@@ -21,15 +20,13 @@ class VGGNetLoader(Dataset):
 
     '''
 
-    def __init__(self, dataDirectory, signal_size=60, GTSize=64, imgw=640, imgh=360, valid=0):
+    def __init__(self, dataDirectory, GTSize=64, imgw=640, imgh=360, valid=0):
         '''
 
         '''
         # Max number of key points
         self.MAX_POINTNUM = 18
-
         self.dataDirectory = dataDirectory
-
         self.GTSize = GTSize
 
         # Read keypoint names
@@ -68,9 +65,6 @@ class VGGNetLoader(Dataset):
             self.conf_maps.append(torch.from_numpy(conf_map.astype(np.float32)))
             self.signals.append(torch.from_numpy(signal.astype(np.float32)).div(signal.max()))
             self.GTs.append(GT)
-
-
-
 
     def __getitem__(self, idx):
         '''
@@ -211,16 +205,14 @@ class VGGNetLoader(Dataset):
 
         return anno
 
+
 class VGGLoader(Dataset):
-    def __init__(self, dataDirectory, signal_size=60, GTSize=64, imgw=640, imgh=360, valid=0):
+    def __init__(self, dataDirectory, GTSize=192, imgw=640, imgh=360, valid=0):
         '''
 
         '''
-        # Max number of key points
-        self.MAX_POINTNUM = 18
 
         self.dataDirectory = dataDirectory
-
         self.GTSize = GTSize
 
         # Read keypoint names
@@ -228,15 +220,15 @@ class VGGLoader(Dataset):
             self.keyPointName = namefile.readlines()
             self.keyPointName = [line.rstrip() for line in self.keyPointName]
 
+        # Max number of key points
+        self.MAX_POINTNUM = len(self.keyPointName)
+
         # self.selectPoint = selectPoint
         # self.rotate = rotate
         # self.shuffle = shuffle
         # self.frames = clipFrame
         self.imgw = imgw
         self.imgh = imgh
-        self.signals = []
-        self.GTs = []
-        self.conf_maps = []
 
         # Read annotation
         # self.anno = self.readAnnotation(dataDirectory)
@@ -250,18 +242,6 @@ class VGGLoader(Dataset):
         with open(os.path.join(dataDirectory, names)) as namefile:
             self.names = namefile.readlines()
             self.names = [line.rstrip() for line in self.names]
-        for i, name in enumerate(self.names):
-
-            # Get confidence map ground truth and signal
-            conf_map, GT = self.getGroundTruth(i)
-            signal = self.readSignal(name)
-
-            self.conf_maps.append(torch.from_numpy(conf_map.astype(np.float32)))
-            self.signals.append(torch.from_numpy(signal.astype(np.float32)).div(signal.max()))
-            self.GTs.append(GT)
-
-
-
 
     def __getitem__(self, idx):
         '''
@@ -269,7 +249,77 @@ class VGGLoader(Dataset):
         and read raw RF signal matrix. If rotation operation is required, it
         performs rotation. The returns are confidence map and signal.
         '''
-        return self.conf_maps[idx], self.signals[idx], self.GTs[idx].copy()
+        name = self.names[idx]
+        signal = self.readSignal(name)
+        conf_map, GT = self.getGroundTruth(idx)
+
+        signal = torch.from_numpy(signal.astype(np.float32)).div(255.)
+        conf_map = torch.from_numpy(conf_map.astype(np.float32))
+        return conf_map, signal, GT
 
     def __len__(self):
         return len(self.names)
+
+    def readSignal(self, directory):
+        # Open the directory in the form of read only binary file
+        sig_file = open(directory, mode='rb')
+        data = np.fromfile(sig_file, dtype=np.int32)
+
+        # Dimensions
+        try:
+            size_x = data[0]
+        except:
+            print(directory)
+
+        size_y = data[1]
+        size_z = data[2]
+
+        # Resize the signal as size_z x size_x x size_y
+        raw_img = np.array(data[3:]).reshape(size_z, size_x, size_y)
+
+        # signal = cv2.resize(raw_img, (60, 64, 64))
+        signal = np.zeros([59, 48, 48])
+        signal[:, 1:47, 1:46] = raw_img
+        return signal
+
+    def getGroundTruth(self, idx):
+        # Read annotation
+        name = self.names[idx].split('/')[-1]
+        annofile = open(os.path.join(self.dataDirectory, 'labels', name + '.json'))
+        anno = json.load(annofile)
+        annofile.close()
+        GT = np.zeros([self.MAX_POINTNUM, 2])
+
+        # Allocate memory for confidence map
+        conf_maps = np.zeros((self.MAX_POINTNUM, self.GTSize, self.GTSize))
+        sigma = 3
+
+        # Coefficient of coordinates transformation
+        new_h = self.imgh * min(self.GTSize / self.imgh, self.GTSize / self.imgw)
+        new_w = self.imgw * min(self.GTSize / self.imgh, self.GTSize / self.imgw)
+        pad_h = (self.GTSize - new_h) / 2
+        pad_w = (self.GTSize - new_w) / 2
+
+        for idx, point_name in enumerate(self.keyPointName):
+            # print(point_name)
+            coord = anno[0][point_name]
+            coord = [int(coord[0]), int(coord[1])]
+            GT[idx, :] = coord
+            if coord[0] == -1:
+                continue
+
+            """
+            #############  Transformation here  #############
+            """
+            # Transformation of coordinates
+            coord[0] = coord[0] * (new_w / self.imgw)
+            coord[1] = coord[1] * (new_h / self.imgw)
+            coord[0] += pad_w
+            coord[1] += pad_h
+
+            # Add 2d gaussian confidence map
+            conf_maps[idx, :, :] = putGaussianMap(coord, conf_maps[idx, :, :], sigma, [self.GTSize, self.GTSize])
+            # heatmap = plt.pcolormesh(conf_maps[idx, :, :], cmap='jet')
+            # plt.show()
+
+        return conf_maps, GT

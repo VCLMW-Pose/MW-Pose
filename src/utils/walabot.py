@@ -186,6 +186,7 @@ class walabot():
         # Getting heat maps in R and theta
         heatmap, _, _, _, _ = self.walabot.GetRawImage()
 
+
 def read_signal_test(save_dir):
     names = os.listdir(save_dir)
 
@@ -202,6 +203,7 @@ def read_signal_test(save_dir):
         _horizontal = sumup_horizontal(np.copy(raw_img))
 
         figure = plt.figure()
+
 
 def read_signal(save_dir):
     sig_file = open(save_dir, mode='rb')
